@@ -196,14 +196,16 @@ class _MainScaffoldState extends State<MainScaffold> {
     ];
 
     return Scaffold(
-      body: Column(
-        children: [
-          if (!result.isLiveData)
-            _DataSourceBanner(result: result, onRetry: _loadStations),
-          Expanded(
-            child: IndexedStack(index: _index, children: screens),
-          ),
-        ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            if (!result.isLiveData)
+              _DataSourceBanner(result: result, onRetry: _loadStations),
+            Expanded(
+              child: IndexedStack(index: _index, children: screens),
+            ),
+          ],
+        ),
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _index,

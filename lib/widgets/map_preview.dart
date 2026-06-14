@@ -67,7 +67,7 @@ class MapPreview extends StatelessWidget {
           children: [
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'cl.precio_bencina.app',
+              userAgentPackageName: 'cl.preciobencina.preciobencina',
             ),
             MarkerLayer(
               markers: [

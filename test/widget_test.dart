@@ -7,7 +7,7 @@ import 'package:preciobencina/repositories/gas_station_repository.dart';
 import 'package:preciobencina/services/cne_fuel_price_service.dart';
 
 /// Servicio de prueba que no hace llamadas de red reales: simula que no hay
-/// datos en vivo (sin `CNE_API_TOKEN`), como ocurre en la app real sin
+/// datos en vivo (sin `BFF_BASE_URL`), como ocurre en la app real sin
 /// configurar.
 class _FakeCneFuelPriceService extends CneFuelPriceService {
   @override

@@ -21,9 +21,9 @@ class CneApiException implements Exception {
   String toString() => 'CneApiException: $message';
 }
 
-/// Cliente para la API "Combustible Vehicular" de la CNE (api.cne.cl),
-/// que entrega el listado de estaciones de servicio con sus precios
-/// vigentes por tipo de combustible.
+/// Cliente del backend (BFF) de PrecioBencina: obtiene el listado de
+/// estaciones de servicio con sus precios vigentes sin que el cliente
+/// maneje ningún token de la CNE (eso vive en `functions/index.js`).
 class CneFuelPriceService {
   CneFuelPriceService({http.Client? client})
     : _client = client ?? http.Client();
@@ -33,35 +33,27 @@ class CneFuelPriceService {
   /// Obtiene el listado crudo de estaciones de servicio, cada una con su
   /// mapa `precios` (combustible -> info de precio).
   ///
-  /// Lanza [CneApiException] si falta configurar `CNE_API_TOKEN` o si la
-  /// respuesta de la API no es válida.
+  /// Lanza [CneApiException] si falta configurar `BFF_BASE_URL` o si la
+  /// respuesta del backend no es válida.
   Future<List<Map<String, dynamic>>> fetchStationPrices() async {
-    if (CneConfig.apiToken.isEmpty) {
-      throw CneApiException(
-        'Falta configurar CNE_API_TOKEN. Obtén tu token en api.cne.cl y '
-        'pásalo con --dart-define=CNE_API_TOKEN=tu_token',
-      );
+    if (CneConfig.bffBaseUrl.isEmpty) {
+      throw CneApiException('Falta configurar BFF_BASE_URL');
     }
 
-    final uri = Uri.parse('${CneConfig.baseUrl}/estaciones');
+    final uri = Uri.parse('${CneConfig.bffBaseUrl}/obtenerEstacionesBencina');
 
     http.Response response;
     try {
-      response = await _client
-          .get(uri, headers: {'Authorization': 'Bearer ${CneConfig.apiToken}'})
-          .timeout(_requestTimeout);
+      response = await _client.get(uri).timeout(_requestTimeout);
     } on TimeoutException {
-      throw CneApiException('La API de la CNE no respondió a tiempo');
+      throw CneApiException('El backend no respondió a tiempo');
     } catch (error) {
-      throw CneApiException('No se pudo conectar con la API de la CNE: $error');
+      throw CneApiException('No se pudo conectar con el backend: $error');
     }
 
-    if (response.statusCode == 401 || response.statusCode == 403) {
-      throw CneApiException('El token de la CNE es inválido o expiró');
-    }
     if (response.statusCode != 200) {
       throw CneApiException(
-        'La API de la CNE respondió con código ${response.statusCode}',
+        'El backend respondió con código ${response.statusCode}',
       );
     }
 
@@ -69,7 +61,7 @@ class CneFuelPriceService {
     try {
       body = jsonDecode(response.body) as List<dynamic>;
     } catch (_) {
-      throw CneApiException('Formato de respuesta inesperado de la CNE');
+      throw CneApiException('Formato de respuesta inesperado del backend');
     }
 
     return body.cast<Map<String, dynamic>>();

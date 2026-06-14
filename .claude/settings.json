@@ -14,7 +14,11 @@
       "Bash(flutter devices *)",
       "Bash(curl -sk -m 15 'https://apidocs.cne.cl/lista-estaciones-de-servicio-22976905e0')",
       "Bash(mkdir -p assets/data)",
-      "Bash(rm /home/cristian/X/Github/preciobencina/response.json)"
+      "Bash(rm /home/cristian/X/Github/preciobencina/response.json)",
+      "Bash(gh auth *)",
+      "Bash(firebase projects:list)",
+      "Bash(git -C /home/cristian/X/Github/preciobencina status)",
+      "Bash(firebase --version)"
     ],
     "additionalDirectories": [
       "/home/cristian/X/Github/preciobencina"
