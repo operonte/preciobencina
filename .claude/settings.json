@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter analyze *)",
+      "WebSearch",
+      "WebFetch(domain:datos.energiaabierta.cl)",
+      "WebFetch(domain:api.cne.cl)",
+      "WebFetch(domain:apidocs.cne.cl)",
+      "WebFetch(domain:www.bencinaenlinea.cl)",
+      "Bash(curl -s https://www.bencinaenlinea.cl/)",
+      "Bash(python3 -c ' *)",
+      "Bash(dart format *)",
+      "Bash(flutter test *)",
+      "Bash(flutter devices *)",
+      "Bash(curl -sk -m 15 'https://apidocs.cne.cl/lista-estaciones-de-servicio-22976905e0')",
+      "Bash(mkdir -p assets/data)",
+      "Bash(rm /home/cristian/X/Github/preciobencina/response.json)"
+    ],
+    "additionalDirectories": [
+      "/home/cristian/X/Github/preciobencina"
+    ]
+  }
+}
