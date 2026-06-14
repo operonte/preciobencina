@@ -16,6 +16,38 @@ extension FuelTypeLabel on FuelType {
         return 'GLP';
     }
   }
+
+  /// Unidad en la que se expresa el precio: litro para combustibles
+  /// líquidos, metro cúbico para el GLP.
+  String get unit => this == FuelType.glp ? 'm³' : 'L';
+
+  /// Descripción corta del tipo de combustible (ej. "95 octanos", "Diésel",
+  /// "GLP"), usada en la ficha de detalle de una estación.
+  String get description {
+    switch (this) {
+      case FuelType.gas93:
+      case FuelType.gas95:
+      case FuelType.gas97:
+        return '$label octanos';
+      case FuelType.diesel:
+      case FuelType.glp:
+        return label;
+    }
+  }
+
+  /// Texto que acompaña al precio en las tarjetas (ej. "95 oct./L",
+  /// "Diésel/L", "GLP/m³").
+  String get unitLabel {
+    switch (this) {
+      case FuelType.gas93:
+      case FuelType.gas95:
+      case FuelType.gas97:
+        return '$label oct./$unit';
+      case FuelType.diesel:
+      case FuelType.glp:
+        return '$label/$unit';
+    }
+  }
 }
 
 /// Para cada [FuelType], las claves del mapa `precios` de la API de la CNE

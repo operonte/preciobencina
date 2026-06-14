@@ -89,14 +89,14 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${station.fuelType.label} octanos',
+                          station.fuelType.description,
                           style: textTheme.bodyMedium?.copyWith(
                             color: AppColors.textMuted,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${station.formattedPrice} / L',
+                          '${station.formattedPrice} / ${station.fuelType.unit}',
                           style: textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.w700,
                             color: isCheapest

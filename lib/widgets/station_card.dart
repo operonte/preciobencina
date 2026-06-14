@@ -115,7 +115,7 @@ class StationCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '${station.fuelType.label} oct./L',
+                    station.fuelType.unitLabel,
                     style: textTheme.bodySmall?.copyWith(
                       color: AppColors.textMuted,
                     ),
