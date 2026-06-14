@@ -32,7 +32,16 @@ class GeocodingService {
 
     try {
       final response = await _client
-          .get(uri, headers: {'Accept-Language': 'es'})
+          .get(
+            uri,
+            headers: {
+              'Accept-Language': 'es',
+              // Nominatim bloquea con 403 los User-Agent genéricos de las
+              // librerías HTTP; hay que identificar la app explícitamente.
+              // https://operations.osmfoundation.org/policies/nominatim/
+              'User-Agent': 'PrecioBencina (cl.preciobencina.preciobencina)',
+            },
+          )
           .timeout(const Duration(seconds: 6));
       if (response.statusCode != 200) return const [];
 
