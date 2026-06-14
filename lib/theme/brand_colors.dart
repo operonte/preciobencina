@@ -35,3 +35,28 @@ Color brandForeground(Color background) {
       ? AppColors.textDark
       : Colors.white;
 }
+
+/// Logos disponibles para las cadenas de bencineras más comunes en Chile.
+/// Si la marca no tiene logo, se usa [brandColor] con un ícono genérico.
+const _brandLogos = <String, String>{
+  'COPEC': 'assets/iconos/copec_icono.png',
+  'SHELL': 'assets/iconos/shell_icono.png',
+  'ARAMCO': 'assets/iconos/icono_aramco.png',
+  'GULF': 'assets/iconos/gulf_icono.png',
+  'PETROBRAS': 'assets/iconos/petrobras_icono.png',
+  'GASCO': 'assets/iconos/gasco_icono.png',
+  'ABASTIBLE': 'assets/iconos/abastible_icono.png',
+  'LIPIGAS': 'assets/iconos/lipigas_icono.png',
+  'PETROPRIX': 'assets/iconos/petroprix_icono.png',
+  'JLC': 'assets/iconos/jlc_icono.png',
+  'HN': 'assets/iconos/hn_icono.png',
+};
+
+/// Devuelve la ruta del logo de [marca], o `null` si no hay uno disponible.
+String? brandLogo(String marca) {
+  final upper = marca.toUpperCase();
+  for (final entry in _brandLogos.entries) {
+    if (upper.contains(entry.key)) return entry.value;
+  }
+  return null;
+}

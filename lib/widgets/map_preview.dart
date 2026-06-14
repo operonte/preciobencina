@@ -143,6 +143,7 @@ class _PricePin extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = isCheapest ? AppColors.accentGreen : AppColors.primary;
     final badgeColor = brandColor(station.name);
+    final logo = brandLogo(station.name);
     return GestureDetector(
       onTap: onTap,
       child: Align(
@@ -153,8 +154,9 @@ class _PricePin extends StatelessWidget {
             Container(
               width: 28,
               height: 28,
+              padding: logo != null ? const EdgeInsets.all(4) : EdgeInsets.zero,
               decoration: BoxDecoration(
-                color: badgeColor,
+                color: logo != null ? Colors.white : badgeColor,
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 2),
                 boxShadow: [
@@ -165,11 +167,13 @@ class _PricePin extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Icon(
-                Icons.local_gas_station,
-                size: 16,
-                color: brandForeground(badgeColor),
-              ),
+              child: logo != null
+                  ? ClipOval(child: Image.asset(logo, fit: BoxFit.contain))
+                  : Icon(
+                      Icons.local_gas_station,
+                      size: 16,
+                      color: brandForeground(badgeColor),
+                    ),
             ),
             const SizedBox(height: 2),
             Container(

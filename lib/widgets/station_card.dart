@@ -24,6 +24,7 @@ class StationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final logo = isCheapest ? null : brandLogo(station.name);
 
     return Material(
       color: AppColors.surface,
@@ -38,19 +39,31 @@ class StationCard extends StatelessWidget {
               Container(
                 width: 48,
                 height: 48,
+                padding: logo != null
+                    ? const EdgeInsets.all(10)
+                    : EdgeInsets.zero,
                 decoration: BoxDecoration(
                   color: isCheapest
                       ? AppColors.accentGreenLight
+                      : logo != null
+                      ? Colors.white
                       : brandColor(station.name).withValues(alpha: 0.15),
                   shape: BoxShape.circle,
+                  border: logo != null
+                      ? Border.all(color: AppColors.background)
+                      : null,
                 ),
                 alignment: Alignment.center,
-                child: Icon(
-                  isCheapest ? Icons.star_rounded : Icons.local_gas_station,
-                  color: isCheapest
-                      ? AppColors.accentGreen
-                      : brandColor(station.name),
-                ),
+                child: logo != null
+                    ? ClipOval(child: Image.asset(logo, fit: BoxFit.contain))
+                    : Icon(
+                        isCheapest
+                            ? Icons.star_rounded
+                            : Icons.local_gas_station,
+                        color: isCheapest
+                            ? AppColors.accentGreen
+                            : brandColor(station.name),
+                      ),
               ),
               const SizedBox(width: 14),
               Expanded(
