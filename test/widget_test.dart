@@ -1,3 +1,5 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_core_platform_interface/test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -20,6 +22,8 @@ void main() {
   testWidgets('Home screen shows app title and bottom navigation', (
     WidgetTester tester,
   ) async {
+    setupFirebaseCoreMocks();
+    await Firebase.initializeApp();
     SharedPreferences.setMockInitialValues({});
     final repository = GasStationRepository(
       service: _FakeCneFuelPriceService(),

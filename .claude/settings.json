@@ -18,7 +18,21 @@
       "Bash(gh auth *)",
       "Bash(firebase projects:list)",
       "Bash(git -C /home/cristian/X/Github/preciobencina status)",
-      "Bash(firebase --version)"
+      "Bash(firebase --version)",
+      "Bash(node --test)",
+      "Bash(npm test *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(firebase login:list)",
+      "Bash(dart pub *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(d['project_info']\\); print\\([c['client_info'] for c in d['client']]\\)\")",
+      "Bash(find ~/.pub-cache -path \"*firebase_app_check-*/lib/src/firebase_app_check.dart\" | head -1 | xargs grep -n \"providerAndroid\\\\|providerApple\\\\|AndroidAppCheckProvider\\\\|AppleAppCheckProvider\\\\|enum AndroidProvider\\\\|enum AppleProvider\" -A2)",
+      "Read(//home/cristian/.pub-cache/**)",
+      "Bash(flutter build *)",
+      "Bash(python3 -c \"import json; json.load\\(open\\('firebase.json'\\)\\); print\\('ok'\\)\")",
+      "Bash(gh release *)",
+      "Bash(git fetch *)",
+      "Bash(git push *)"
     ],
     "additionalDirectories": [
       "/home/cristian/X/Github/preciobencina"
