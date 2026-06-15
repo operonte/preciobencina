@@ -14,5 +14,25 @@
         "*.local"
       ]
     }
-  ]
+  ],
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "preciobencina",
+          "appId": "1:577922955558:android:277d2005ea3c938debe9e7",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "preciobencina",
+          "configurations": {
+            "android": "1:577922955558:android:277d2005ea3c938debe9e7",
+            "ios": "1:577922955558:ios:e4645fe5456ae9dcebe9e7"
+          }
+        }
+      }
+    }
+  }
 }

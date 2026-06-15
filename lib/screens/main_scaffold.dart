@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -32,6 +34,10 @@ class _MainScaffoldState extends State<MainScaffold> {
   SortOrder _sortOrder = SortOrder.price;
   String _searchQuery = '';
   late final _repository = widget.repository ?? GasStationRepository();
+
+  /// `null` si Firebase no se pudo inicializar (ver [_initFirebase] en
+  /// `main.dart`); en ese caso simplemente no se registran eventos.
+  final _analytics = Firebase.apps.isEmpty ? null : FirebaseAnalytics.instance;
   final _locationService = LocationService();
   final _favoritesService = FavoritesService();
   final _geocodingService = GeocodingService();
@@ -237,11 +243,19 @@ class _MainScaffoldState extends State<MainScaffold> {
       FilterScreen(
         selectedFuel: _selectedFuel,
         sortOrder: _sortOrder,
-        onFuelChanged: (fuel) => setState(() => _selectedFuel = fuel),
+        onFuelChanged: (fuel) {
+          setState(() => _selectedFuel = fuel);
+          _analytics?.logEvent(
+            name: 'fuel_filter_selected',
+            parameters: {'fuel': fuel.name},
+          );
+        },
         onSortOrderChanged: (order) => setState(() => _sortOrder = order),
         onApply: () => setState(() => _index = 1),
       ),
     ];
+
+    const tabNames = ['mapa', 'lista', 'filtros'];
 
     return Scaffold(
       body: SafeArea(
@@ -262,7 +276,13 @@ class _MainScaffoldState extends State<MainScaffold> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _index,
-        onTap: (index) => setState(() => _index = index),
+        onTap: (index) {
+          setState(() => _index = index);
+          _analytics?.logEvent(
+            name: 'tab_selected',
+            parameters: {'tab': tabNames[index]},
+          );
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.map_outlined),
