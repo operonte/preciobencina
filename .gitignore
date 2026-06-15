@@ -50,3 +50,8 @@ app.*.map.json
 firebase-debug.log
 functions/node_modules/
 functions/.runtimeconfig.json
+
+# Android release signing
+/android/key.properties
+/android/app/*.jks
+/android/app/*.keystore

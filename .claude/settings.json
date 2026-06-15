@@ -32,7 +32,8 @@
       "Bash(python3 -c \"import json; json.load\\(open\\('firebase.json'\\)\\); print\\('ok'\\)\")",
       "Bash(gh release *)",
       "Bash(git fetch *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(/usr/lib/android-sdk/build-tools/36.0.0/apksigner verify *)"
     ],
     "additionalDirectories": [
       "/home/cristian/X/Github/preciobencina"
