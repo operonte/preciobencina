@@ -29,7 +29,7 @@ class ListScreen extends StatelessWidget {
       ..sort(
         (a, b) => sortOrder == SortOrder.distance
             ? a.distanceKm.compareTo(b.distanceKm)
-            : a.price.compareTo(b.price),
+            : _comparePrices(a.price, b.price),
       );
 
     return SafeArea(
@@ -88,4 +88,13 @@ class ListScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Compara precios que pueden ser `null` ("No informado"), dejando esas
+/// estaciones al final del orden por precio.
+int _comparePrices(double? a, double? b) {
+  if (a == null && b == null) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+  return a.compareTo(b);
 }

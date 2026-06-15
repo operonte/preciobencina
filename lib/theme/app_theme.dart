@@ -12,7 +12,9 @@ class AppColors {
   static const accentGreen = Color(0xFF2FAE60); // "la más barata"
   static const accentGreenLight = Color(0xFFE3F6EA);
   static const textDark = Color(0xFF2B2118);
-  static const textMuted = Color(0xFF8A7B6E);
+  // Oscurecido respecto al naranja original (#8A7B6E) para cumplir el
+  // contraste mínimo WCAG AA (4.5:1) sobre `surface` en texto pequeño.
+  static const textMuted = Color(0xFF6E5F53);
   static const mapBackground = Color(0xFFD9F1E6);
   static const mapRoad = Color(0xFFFFFFFF);
 }

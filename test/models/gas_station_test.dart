@@ -66,7 +66,7 @@ void main() {
       expect(stations.first.price, 1205);
     });
 
-    test('omite combustibles sin precio disponible', () {
+    test('mapea GLP y parafina (KE) cuando informan precio', () {
       final stations = GasStation.fromCneStation({
         'codigo': 'ab110101',
         'distribuidor': {'marca': 'COPEC'},
@@ -77,8 +77,47 @@ void main() {
         },
       });
 
+      expect(stations, hasLength(2));
+      expect(
+        stations.firstWhere((s) => s.fuelType == FuelType.glp).price,
+        819,
+      );
+      expect(
+        stations.firstWhere((s) => s.fuelType == FuelType.kerosene).price,
+        900,
+      );
+    });
+
+    test('omite combustibles sin precio disponible', () {
+      final stations = GasStation.fromCneStation({
+        'codigo': 'ab110101',
+        'distribuidor': {'marca': 'COPEC'},
+        'ubicacion': {},
+        'precios': {
+          'GLP': {'precio': '819'},
+        },
+      });
+
       expect(stations, hasLength(1));
       expect(stations.first.fuelType, FuelType.glp);
+    });
+
+    test('marca "No informado" cuando el combustible se ofrece sin precio '
+        'válido', () {
+      final stations = GasStation.fromCneStation({
+        'codigo': 'ab110101',
+        'distribuidor': {'marca': 'COPEC'},
+        'ubicacion': {},
+        'precios': {
+          'GLP': {'precio': ''},
+        },
+      });
+
+      expect(stations, hasLength(1));
+      final station = stations.first;
+      expect(station.fuelType, FuelType.glp);
+      expect(station.price, isNull);
+      expect(station.formattedPrice, 'No informado');
     });
 
     test('usa valores por defecto cuando faltan datos', () {

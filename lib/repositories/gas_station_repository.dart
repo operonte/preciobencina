@@ -70,8 +70,13 @@ class GasStationRepository {
 
   /// Número de estaciones cercanas a conservar. La CNE entrega ~2000
   /// estaciones a nivel nacional en cada consulta; quedarnos solo con las
-  /// 20 más cercanas mantiene la app, el mapa y la caché local livianos.
-  static const _maxStations = 20;
+  /// más cercanas mantiene la app, el mapa y la caché local livianos.
+  ///
+  /// Combustibles poco comunes (parafina, GLP) no los reporta cualquier
+  /// estación, así que se conserva un margen mayor a 20 para que, al
+  /// filtrar por uno de esos combustibles, sigan apareciendo resultados
+  /// cercanos en vez de una lista vacía.
+  static const _maxStations = 60;
 
   /// Obtiene las estaciones más cercanas a ([latitude], [longitude]) (la
   /// ubicación del usuario o un lugar buscado). Si no se entrega una

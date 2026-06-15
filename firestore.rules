@@ -1,0 +1,12 @@
+rules_version = '2';
+
+// Solo Cloud Functions (Admin SDK) accede a esta base de datos, para cachear
+// el token de la CNE en `cne_auth/token`. Ningún cliente debe leer ni
+// escribir directamente.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -107,4 +107,4 @@ final List<GasStation> mockStations = [
 
 /// Estación con el precio más bajo entre los datos de ejemplo.
 GasStation get cheapestStation =>
-    mockStations.reduce((a, b) => a.price < b.price ? a : b);
+    mockStations.reduce((a, b) => a.price! < b.price! ? a : b);

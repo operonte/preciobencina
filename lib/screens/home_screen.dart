@@ -22,6 +22,7 @@ class HomeScreen extends StatefulWidget {
     this.onSuggestionSelected,
     this.referencePlaceLabel,
     this.onUseMyLocation,
+    required this.onCalibrateLocation,
     this.userLatitude,
     this.userLongitude,
     this.focusLatitude,
@@ -44,6 +45,10 @@ class HomeScreen extends StatefulWidget {
   /// la ubicación del usuario.
   final String? referencePlaceLabel;
   final Future<void> Function()? onUseMyLocation;
+
+  /// Vuelve a obtener la ubicación GPS del usuario y recentra el mapa,
+  /// siempre disponible mediante el botón flotante sobre el mapa.
+  final Future<void> Function() onCalibrateLocation;
 
   final double? userLatitude;
   final double? userLongitude;
@@ -130,6 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 suffixIcon: widget.searchQuery.isEmpty
                     ? null
                     : IconButton(
+                        tooltip: 'Borrar búsqueda',
                         icon: const Icon(
                           Icons.clear,
                           color: AppColors.textMuted,
@@ -176,21 +182,30 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 16),
             ] else
               const _EmptyResultsMessage(),
-            MapPreview(
-              stations: stations,
-              cheapestId: cheapest?.id ?? '',
-              userLatitude: widget.userLatitude,
-              userLongitude: widget.userLongitude,
-              focusLatitude: widget.focusLatitude,
-              focusLongitude: widget.focusLongitude,
-              onStationTap: (station) => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => StationDetailScreen(
-                    station: station,
-                    isCheapest: station.id == cheapest?.id,
+            Stack(
+              children: [
+                MapPreview(
+                  stations: stations,
+                  cheapestId: cheapest?.id ?? '',
+                  userLatitude: widget.userLatitude,
+                  userLongitude: widget.userLongitude,
+                  focusLatitude: widget.focusLatitude,
+                  focusLongitude: widget.focusLongitude,
+                  onStationTap: (station) => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => StationDetailScreen(
+                        station: station,
+                        isCheapest: station.id == cheapest?.id,
+                      ),
+                    ),
                   ),
                 ),
-              ),
+                Positioned(
+                  right: 12,
+                  bottom: 12,
+                  child: _GpsButton(onPressed: widget.onCalibrateLocation),
+                ),
+              ],
             ),
           ],
         ),
@@ -303,6 +318,35 @@ class _EmptyResultsMessage extends StatelessWidget {
           style: Theme.of(
             context,
           ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
+        ),
+      ),
+    );
+  }
+}
+
+/// Botón circular flotante sobre el mapa para volver a obtener la ubicación
+/// GPS del usuario y recentrar el mapa, similar al de apps como Uber o
+/// Google Maps.
+class _GpsButton extends StatelessWidget {
+  const _GpsButton({required this.onPressed});
+
+  final Future<void> Function() onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      shape: const CircleBorder(),
+      color: AppColors.surface,
+      elevation: 3,
+      child: Tooltip(
+        message: 'Recalibrar ubicación',
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onPressed,
+          child: const Padding(
+            padding: EdgeInsets.all(10),
+            child: Icon(Icons.gps_fixed, color: AppColors.primary),
+          ),
         ),
       ),
     );

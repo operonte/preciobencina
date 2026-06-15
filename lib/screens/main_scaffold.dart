@@ -9,8 +9,8 @@ import '../repositories/gas_station_repository.dart';
 import '../services/favorites_service.dart';
 import '../services/geocoding_service.dart';
 import '../services/location_service.dart';
-import '../theme/app_theme.dart';
 import '../widgets/loading_view.dart';
+import '../widgets/status_banners.dart';
 import 'filter_screen.dart';
 import 'home_screen.dart';
 import 'list_screen.dart';
@@ -37,6 +37,7 @@ class _MainScaffoldState extends State<MainScaffold> {
   final _geocodingService = GeocodingService();
   GasStationsResult? _result;
   Position? _userPosition;
+  LocationAvailability _locationAvailability = LocationAvailability.available;
   Set<String> _favoriteIds = {};
 
   /// Lugar elegido por el usuario en el buscador, usado como punto de
@@ -59,7 +60,10 @@ class _MainScaffoldState extends State<MainScaffold> {
   }
 
   Future<void> _loadStations() async {
-    final position = await _locationService.getCurrentPosition();
+    final availability = await _locationService.checkAvailability();
+    final position = availability == LocationAvailability.available
+        ? await _locationService.getCurrentPosition()
+        : null;
     final reference = _referencePlace;
     final result = await _repository.fetchNearbyStations(
       latitude: reference?.latitude ?? position?.latitude,
@@ -69,6 +73,7 @@ class _MainScaffoldState extends State<MainScaffold> {
     setState(() {
       _result = result;
       _userPosition = position;
+      _locationAvailability = availability;
     });
   }
 
@@ -124,13 +129,43 @@ class _MainScaffoldState extends State<MainScaffold> {
     await _loadStations();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final result = _result;
-    if (result == null) {
-      return const LoadingView();
+  /// Recalibra el GPS: vuelve a pedir la ubicación actual y recentra el
+  /// mapa. Si no se pudo obtener (permiso denegado o GPS apagado), avisa.
+  Future<void> _calibrateLocation() async {
+    await _useMyLocation();
+    if (!mounted) return;
+    switch (_locationAvailability) {
+      case LocationAvailability.available:
+        return;
+      case LocationAvailability.serviceDisabled:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('El GPS está desactivado.'),
+            action: SnackBarAction(
+              label: 'Activar',
+              onPressed: _locationService.openLocationSettings,
+            ),
+          ),
+        );
+      case LocationAvailability.permissionDenied:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'PrecioBencina no tiene permiso de ubicación.',
+            ),
+            action: SnackBarAction(
+              label: 'Ajustes',
+              onPressed: _locationService.openAppSettings,
+            ),
+          ),
+        );
     }
+  }
 
+  /// Recalcula la distancia de cada estación al punto de referencia actual
+  /// (lugar buscado o GPS) y filtra por el combustible y texto de búsqueda
+  /// seleccionados.
+  List<GasStation> _visibleStations(GasStationsResult result) {
     final userPosition = _userPosition;
     final referencePlace = _referencePlace;
     final refLatitude = referencePlace?.latitude ?? userPosition?.latitude;
@@ -149,15 +184,27 @@ class _MainScaffoldState extends State<MainScaffold> {
         station.longitude!,
       );
       return station.copyWithDistance(meters / 1000);
-    }).toList();
+    });
 
     final query = _searchQuery.trim().toLowerCase();
-    final filteredStations = stations.where((station) {
+    return stations.where((station) {
       if (station.fuelType != _selectedFuel) return false;
       if (query.isEmpty) return true;
       return station.name.toLowerCase().contains(query) ||
           station.address.toLowerCase().contains(query);
     }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final result = _result;
+    if (result == null) {
+      return const LoadingView();
+    }
+
+    final userPosition = _userPosition;
+    final referencePlace = _referencePlace;
+    final filteredStations = _visibleStations(result);
     final cheapest = filteredStations.cheapestOrNull;
 
     final screens = [
@@ -170,6 +217,7 @@ class _MainScaffoldState extends State<MainScaffold> {
         onSuggestionSelected: _selectPlace,
         referencePlaceLabel: referencePlace?.label,
         onUseMyLocation: _useMyLocation,
+        onCalibrateLocation: _calibrateLocation,
         onRefresh: _loadStations,
         favoriteIds: _favoriteIds,
         onToggleFavorite: _toggleFavorite,
@@ -200,7 +248,12 @@ class _MainScaffoldState extends State<MainScaffold> {
         child: Column(
           children: [
             if (!result.isLiveData)
-              _DataSourceBanner(result: result, onRetry: _loadStations),
+              DataSourceBanner(result: result, onRetry: _loadStations),
+            if (_locationAvailability != LocationAvailability.available)
+              LocationBanner(
+                availability: _locationAvailability,
+                locationService: _locationService,
+              ),
             Expanded(
               child: IndexedStack(index: _index, children: screens),
             ),
@@ -229,68 +282,5 @@ class _MainScaffoldState extends State<MainScaffold> {
         ],
       ),
     );
-  }
-}
-
-/// Aviso visible cuando no se están mostrando datos en vivo de la CNE:
-/// indica si se trata de la última caché guardada o de datos de ejemplo.
-class _DataSourceBanner extends StatelessWidget {
-  const _DataSourceBanner({required this.result, required this.onRetry});
-
-  final GasStationsResult result;
-  final Future<void> Function() onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final message = switch (result.source) {
-      DataSource.cached =>
-        'Sin conexión: mostrando precios guardados${_cachedAtSuffix()}',
-      DataSource.bundled =>
-        'Mostrando precios de referencia (pueden no estar actualizados)',
-      DataSource.mock =>
-        'Mostrando datos de ejemplo mientras se cargan los '
-            'precios reales',
-      DataSource.live => '',
-    };
-
-    return Container(
-      width: double.infinity,
-      color: AppColors.primary.withValues(alpha: 0.12),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.info_outline,
-            size: 16,
-            color: AppColors.primaryDark,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              message,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: AppColors.primaryDark),
-            ),
-          ),
-          TextButton(
-            onPressed: onRetry,
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              foregroundColor: AppColors.primaryDark,
-            ),
-            child: const Text('Reintentar'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _cachedAtSuffix() {
-    final cachedAt = result.cachedAt;
-    if (cachedAt == null) return '';
-    final h = cachedAt.hour.toString().padLeft(2, '0');
-    final m = cachedAt.minute.toString().padLeft(2, '0');
-    return ' (actualizados $h:$m)';
   }
 }

@@ -38,6 +38,9 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
         actions: [
           if (widget.onToggleFavorite != null)
             IconButton(
+              tooltip: _isFavorite
+                  ? 'Quitar de favoritos'
+                  : 'Agregar a favoritos',
               icon: Icon(_isFavorite ? Icons.favorite : Icons.favorite_border),
               onPressed: () {
                 setState(() => _isFavorite = !_isFavorite);

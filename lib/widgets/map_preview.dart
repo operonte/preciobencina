@@ -12,7 +12,7 @@ const _defaultCenter = LatLng(-33.4280, -70.6150);
 
 /// Mapa real (OpenStreetMap) con pines de precio por estación y la
 /// ubicación del usuario, si está disponible.
-class MapPreview extends StatelessWidget {
+class MapPreview extends StatefulWidget {
   const MapPreview({
     super.key,
     required this.stations,
@@ -35,26 +35,60 @@ class MapPreview extends StatelessWidget {
   final double? focusLatitude;
   final double? focusLongitude;
 
+  /// Punto en el que centrar el mapa según las coordenadas dadas, con la
+  /// prioridad: lugar buscado > ubicación del usuario > primera estación
+  /// con coordenadas > centro por defecto.
+  LatLng _center(List<GasStation> located) {
+    if (focusLatitude != null && focusLongitude != null) {
+      return LatLng(focusLatitude!, focusLongitude!);
+    }
+    if (userLatitude != null && userLongitude != null) {
+      return LatLng(userLatitude!, userLongitude!);
+    }
+    if (located.isNotEmpty) {
+      return LatLng(located.first.latitude!, located.first.longitude!);
+    }
+    return _defaultCenter;
+  }
+
+  @override
+  State<MapPreview> createState() => _MapPreviewState();
+}
+
+class _MapPreviewState extends State<MapPreview> {
+  final _mapController = MapController();
+
+  @override
+  void didUpdateWidget(MapPreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldCenter = oldWidget._center(_locatedStations(oldWidget));
+    final newCenter = widget._center(_locatedStations(widget));
+    if (oldCenter != newCenter) {
+      _mapController.move(newCenter, _mapController.camera.zoom);
+    }
+  }
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
+  }
+
+  List<GasStation> _locatedStations(MapPreview widget) => widget.stations
+      .where((s) => s.latitude != null && s.longitude != null)
+      .toList();
+
   @override
   Widget build(BuildContext context) {
-    final located = stations
-        .where((s) => s.latitude != null && s.longitude != null)
-        .toList();
-
-    final center = focusLatitude != null && focusLongitude != null
-        ? LatLng(focusLatitude!, focusLongitude!)
-        : userLatitude != null && userLongitude != null
-        ? LatLng(userLatitude!, userLongitude!)
-        : located.isNotEmpty
-        ? LatLng(located.first.latitude!, located.first.longitude!)
-        : _defaultCenter;
+    final located = _locatedStations(widget);
+    final center = widget._center(located);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(24),
       child: AspectRatio(
         aspectRatio: 1.1,
         child: FlutterMap(
-          key: ValueKey('${center.latitude},${center.longitude}'),
+          mapController: _mapController,
           options: MapOptions(
             initialCenter: center,
             initialZoom: 14,
@@ -71,9 +105,9 @@ class MapPreview extends StatelessWidget {
             ),
             MarkerLayer(
               markers: [
-                if (userLatitude != null && userLongitude != null)
+                if (widget.userLatitude != null && widget.userLongitude != null)
                   Marker(
-                    point: LatLng(userLatitude!, userLongitude!),
+                    point: LatLng(widget.userLatitude!, widget.userLongitude!),
                     width: 24,
                     height: 24,
                     child: const _UserDot(),
@@ -86,8 +120,8 @@ class MapPreview extends StatelessWidget {
                     alignment: Alignment.topCenter,
                     child: _PricePin(
                       station: station,
-                      isCheapest: station.id == cheapestId,
-                      onTap: () => onStationTap?.call(station),
+                      isCheapest: station.id == widget.cheapestId,
+                      onTap: () => widget.onStationTap?.call(station),
                     ),
                   ),
               ],

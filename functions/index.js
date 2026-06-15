@@ -3,65 +3,23 @@ const {defineSecret} = require("firebase-functions/params");
 const {initializeApp} = require("firebase-admin/app");
 const {getFirestore} = require("firebase-admin/firestore");
 const axios = require("axios");
+const {createCneAuth} = require("./lib/cneAuth");
 
 const cneEmail = defineSecret("CNE_EMAIL");
 const cnePassword = defineSecret("CNE_PASSWORD");
 
-const CNE_LOGIN_URL = "https://api.cne.cl/api/login";
 const CNE_ESTACIONES_URL = "https://api.cne.cl/api/v4/estaciones";
 
 // La base de datos se llama "preciobencina" (no "(default)").
 const FIRESTORE_DATABASE = "preciobencina";
-const REFRESH_BUFFER_MS = 60_000;
 
 initializeApp();
 
-/**
- * Decodifica el campo "exp" (segundos epoch) de un JWT, sin verificar firma:
- * solo lo necesitamos para saber cuándo pedir uno nuevo.
- * @param {string} token Token JWT recibido de la CNE.
- * @return {number} Marca de tiempo (ms) de expiración del token.
- */
-function decodeJwtExpiry(token) {
-  const payload = JSON.parse(
-      Buffer.from(token.split(".")[1], "base64url").toString("utf8"),
-  );
-  return payload.exp * 1000;
-}
-
-/**
- * Inicia sesión en la API de la CNE y guarda el token nuevo en Firestore.
- * @return {Promise<string>} Token Bearer recién obtenido.
- */
-async function loginAndCacheToken() {
-  const response = await axios.post(CNE_LOGIN_URL, {
-    email: cneEmail.value(),
-    password: cnePassword.value(),
-  });
-  const token = response.data.token;
-  const expiresAt = decodeJwtExpiry(token);
-
-  const db = getFirestore(FIRESTORE_DATABASE);
-  await db.collection("cne_auth").doc("token").set({token, expiresAt});
-
-  return token;
-}
-
-/**
- * Obtiene un token Bearer válido: reutiliza el guardado en Firestore si no
- * está por vencer, o inicia sesión de nuevo si falta o está vencido.
- * @return {Promise<string>} Token Bearer válido.
- */
-async function getValidToken() {
-  const db = getFirestore(FIRESTORE_DATABASE);
-  const snap = await db.collection("cne_auth").doc("token").get();
-  const cached = snap.data();
-
-  if (cached && cached.expiresAt - Date.now() > REFRESH_BUFFER_MS) {
-    return cached.token;
-  }
-  return loginAndCacheToken();
-}
+const cneAuth = createCneAuth({
+  db: getFirestore(FIRESTORE_DATABASE),
+  axiosClient: axios,
+  getCredentials: () => ({email: cneEmail.value(), password: cnePassword.value()}),
+});
 
 /**
  * BFF: entrega el listado de estaciones de la CNE sin exponer ninguna
@@ -73,11 +31,14 @@ exports.obtenerEstacionesBencina = onRequest(
     {
       region: "southamerica-east1",
       secrets: [cneEmail, cnePassword],
-      cors: true,
+      // La app móvil no envía cabecera Origin, así que no necesita CORS.
+      // Desactivado para que sitios web de terceros no puedan leer la
+      // respuesta desde el navegador del visitante (evita "hotlinking").
+      cors: false,
     },
     async (req, res) => {
       try {
-        let token = await getValidToken();
+        let token = await cneAuth.getValidToken();
 
         let response;
         try {
@@ -87,7 +48,7 @@ exports.obtenerEstacionesBencina = onRequest(
           });
         } catch (error) {
           if (error.response && error.response.status === 401) {
-            token = await loginAndCacheToken();
+            token = await cneAuth.loginAndCacheToken();
             response = await axios.get(CNE_ESTACIONES_URL, {
               headers: {Authorization: `Bearer ${token}`},
               timeout: 30000,

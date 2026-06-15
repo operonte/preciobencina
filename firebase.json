@@ -1,4 +1,8 @@
 {
+  "firestore": {
+    "database": "preciobencina",
+    "rules": "firestore.rules"
+  },
   "functions": [
     {
       "source": "functions",

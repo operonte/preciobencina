@@ -109,6 +109,9 @@ class StationCard extends StatelessWidget {
                       child: IconButton(
                         padding: EdgeInsets.zero,
                         iconSize: 20,
+                        tooltip: isFavorite
+                            ? 'Quitar de favoritos'
+                            : 'Agregar a favoritos',
                         icon: Icon(
                           isFavorite ? Icons.favorite : Icons.favorite_border,
                           color: isFavorite
