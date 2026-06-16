@@ -33,7 +33,19 @@
       "Bash(gh release *)",
       "Bash(git fetch *)",
       "Bash(git push *)",
-      "Bash(/usr/lib/android-sdk/build-tools/36.0.0/apksigner verify *)"
+      "Bash(keytool -genkey -v -keystore preciobencina-release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias preciobencina -storepass \"PrecioBencina2026!\" -keypass \"PrecioBencina2026!\" -dname \"CN=PrecioBencina, OU=PrecioBencina, O=PrecioBencina, L=Santiago, ST=RM, C=CL\")",
+      "Bash(unzip -p build/app/outputs/flutter-apk/app-release.apk META-INF/*.RSA)",
+      "Bash(keytool -printcert)",
+      "Bash(/usr/lib/android-sdk/build-tools/36.0.0/apksigner verify *)",
+      "Bash(keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android)",
+      "Bash(firebase deploy *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://preciobencina.web.app/privacidad.html)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" https://preciobencina.web.app/privacidad)",
+      "Bash(git -C /home/cristian/X/Github/preciobencina diff)",
+      "Bash(git -C /home/cristian/X/Github/preciobencina log --oneline -3)",
+      "Bash(git -C /home/cristian/X/Github/preciobencina add android/app/src/main/AndroidManifest.xml firebase.json ios/Runner/Info.plist lib/screens/home_screen.dart lib/screens/about_screen.dart pubspec.yaml public/privacidad.html public/terminos.html)",
+      "Bash(git -C /home/cristian/X/Github/preciobencina commit -m ' *)",
+      "Bash(git -C /home/cristian/X/Github/preciobencina push)"
     ],
     "additionalDirectories": [
       "/home/cristian/X/Github/preciobencina"
