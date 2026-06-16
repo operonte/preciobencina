@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../widgets/map_preview.dart';
 import '../widgets/mascot.dart';
 import '../widgets/station_card.dart';
+import 'about_screen.dart';
 import 'station_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -111,6 +112,16 @@ class _HomeScreenState extends State<HomeScreen> {
                             ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                     ],
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Acerca de',
+                  icon: const Icon(
+                    Icons.info_outline,
+                    color: AppColors.textMuted,
+                  ),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AboutScreen()),
                   ),
                 ),
               ],
