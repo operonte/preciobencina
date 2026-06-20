@@ -49,16 +49,18 @@ funciona "de fábrica" con datos reales, sin pasos adicionales.
 Si no hay datos en vivo (sin red o si el backend falla), la app usa la última
 caché local guardada o, en su defecto, el snapshot de estaciones incluido.
 
-## Getting Started
+## Desarrollo
 
-This project is a starting point for a Flutter application.
+Proyecto Flutter. Para correrlo en local:
 
-A few resources to get you started if this is your first Flutter project:
+```bash
+flutter pub get
+flutter run
+```
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+### Pruebas
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+flutter test                  # app (Dart)
+npm --prefix functions test   # backend (Cloud Functions)
+```
