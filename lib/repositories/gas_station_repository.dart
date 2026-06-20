@@ -68,15 +68,17 @@ class GasStationRepository {
   final Future<List<GasStation>> Function({AssetBundle? bundle})
   _loadBundledStations;
 
-  /// Número de estaciones cercanas a conservar. La CNE entrega ~2000
-  /// estaciones a nivel nacional en cada consulta; quedarnos solo con las
-  /// más cercanas mantiene la app, el mapa y la caché local livianos.
+  /// Número de estaciones a conservar por cada tipo de combustible. La CNE
+  /// entrega ~2000 estaciones a nivel nacional en cada consulta; quedarnos
+  /// solo con las más cercanas de cada combustible mantiene la app, el mapa
+  /// y la caché local livianos y enfocados en lo que el usuario tiene cerca.
   ///
-  /// Combustibles poco comunes (parafina, GLP) no los reporta cualquier
-  /// estación, así que se conserva un margen mayor a 20 para que, al
-  /// filtrar por uno de esos combustibles, sigan apareciendo resultados
-  /// cercanos en vez de una lista vacía.
-  static const _maxStations = 60;
+  /// El límite se cuenta por combustible (no de forma global) a propósito:
+  /// combustibles poco comunes como la parafina o el GLP los ofrecen pocas
+  /// estaciones, así que contarlos por separado garantiza que igual
+  /// aparezcan hasta 20 resultados cercanos (y nunca menos de 10, si existen)
+  /// al filtrar por ellos, en vez de un par de estaciones sueltas.
+  static const _maxStationsPerFuel = 20;
 
   /// Obtiene las estaciones más cercanas a ([latitude], [longitude]) (la
   /// ubicación del usuario o un lugar buscado). Si no se entrega una
@@ -86,26 +88,16 @@ class GasStationRepository {
     double? longitude,
   }) async {
     try {
-      var rows = await _service.fetchStationPrices();
+      final rows = await _service.fetchStationPrices();
       if (rows.isEmpty) {
         return _fallback(latitude: latitude, longitude: longitude);
       }
 
-      if (latitude != null && longitude != null) {
-        rows = [...rows]
-          ..sort(
-            (a, b) => _distanceFromRow(
-              a,
-              latitude,
-              longitude,
-            ).compareTo(_distanceFromRow(b, latitude, longitude)),
-          );
-      }
-      if (rows.length > _maxStations) {
-        rows = rows.sublist(0, _maxStations);
-      }
-
-      final stations = rows.expand(GasStation.fromCneStation).toList();
+      final stations = _limitNearbyPerFuel(
+        rows.expand(GasStation.fromCneStation).toList(),
+        latitude: latitude,
+        longitude: longitude,
+      );
       await _saveToCache(stations);
       return GasStationsResult(stations: stations, source: DataSource.live);
     } catch (error) {
@@ -117,18 +109,36 @@ class GasStationRepository {
     }
   }
 
-  /// Distancia en metros entre ([latitude], [longitude]) y la ubicación de
-  /// [row]. Las estaciones sin coordenadas válidas quedan al final.
-  double _distanceFromRow(
-    Map<String, dynamic> row,
-    double latitude,
-    double longitude,
-  ) {
-    final ubicacion = row['ubicacion'] as Map?;
-    final lat = double.tryParse(ubicacion?['latitud']?.toString() ?? '');
-    final lng = double.tryParse(ubicacion?['longitud']?.toString() ?? '');
-    if (lat == null || lng == null) return double.infinity;
-    return Geolocator.distanceBetween(latitude, longitude, lat, lng);
+  /// Conserva, por cada tipo de combustible, las [_maxStationsPerFuel]
+  /// estaciones más cercanas a ([latitude], [longitude]). Al contar el
+  /// límite por combustible, los poco comunes (parafina, GLP) llegan hasta
+  /// sus ~20 estaciones más cercanas aunque queden más lejos, en vez de
+  /// quedar fuera por un tope global dominado por las bencineras comunes.
+  /// Si no se entrega ubicación, toma una muestra del mismo tamaño.
+  List<GasStation> _limitNearbyPerFuel(
+    List<GasStation> stations, {
+    double? latitude,
+    double? longitude,
+  }) {
+    final byFuel = <FuelType, List<GasStation>>{};
+    for (final station in stations) {
+      byFuel.putIfAbsent(station.fuelType, () => <GasStation>[]).add(station);
+    }
+
+    final limited = <GasStation>[];
+    for (final group in byFuel.values) {
+      if (latitude != null && longitude != null) {
+        group.sort(
+          (a, b) => _distanceFromStation(
+            a,
+            latitude,
+            longitude,
+          ).compareTo(_distanceFromStation(b, latitude, longitude)),
+        );
+      }
+      limited.addAll(group.take(_maxStationsPerFuel));
+    }
+    return limited;
   }
 
   /// Distancia en metros entre ([latitude], [longitude]) y [station]. Las
@@ -158,23 +168,17 @@ class GasStationRepository {
     }
 
     try {
-      var stations = await _loadBundledStations();
+      final stations = await _loadBundledStations();
       if (stations.isEmpty) throw StateError('snapshot vacío');
 
-      if (latitude != null && longitude != null) {
-        stations = [...stations]
-          ..sort(
-            (a, b) => _distanceFromStation(
-              a,
-              latitude,
-              longitude,
-            ).compareTo(_distanceFromStation(b, latitude, longitude)),
-          );
-      }
-      if (stations.length > _maxStations) {
-        stations = stations.sublist(0, _maxStations);
-      }
-      return GasStationsResult(stations: stations, source: DataSource.bundled);
+      return GasStationsResult(
+        stations: _limitNearbyPerFuel(
+          stations,
+          latitude: latitude,
+          longitude: longitude,
+        ),
+        source: DataSource.bundled,
+      );
     } catch (error) {
       developer.log(
         'No se pudo cargar el snapshot de estaciones, usando datos de ejemplo: $error',
