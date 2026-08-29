@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../models/gas_station.dart';
 import '../theme/app_theme.dart';
+import '../widgets/empty_results_message.dart';
+import '../widgets/official_source_link.dart';
 import '../widgets/station_card.dart';
 import 'station_detail_screen.dart';
 
@@ -14,6 +16,7 @@ class ListScreen extends StatelessWidget {
     required this.onRefresh,
     required this.favoriteIds,
     required this.onToggleFavorite,
+    this.isDataUnavailable = false,
   });
 
   final List<GasStation> stations;
@@ -22,6 +25,10 @@ class ListScreen extends StatelessWidget {
   final Future<void> Function() onRefresh;
   final Set<String> favoriteIds;
   final ValueChanged<String> onToggleFavorite;
+
+  /// `true` cuando no se pudo obtener ningún dato (ni en vivo, ni en caché,
+  /// ni el snapshot incluido).
+  final bool isDataUnavailable;
 
   @override
   Widget build(BuildContext context) {
@@ -56,11 +63,13 @@ class ListScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             if (sortedStations.isEmpty)
-              Text(
-                'No encontramos estaciones que coincidan con tu búsqueda o filtro.',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
+              EmptyResultsMessage(
+                message: isDataUnavailable
+                    ? 'No pudimos cargar los precios. Revisa tu conexión '
+                          'e inténtalo de nuevo.'
+                    : 'No encontramos estaciones que coincidan con tu '
+                          'búsqueda o filtro.',
+                onRetry: isDataUnavailable ? onRefresh : null,
               )
             else
               for (final station in sortedStations)
@@ -83,6 +92,10 @@ class ListScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+            if (sortedStations.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              const Center(child: OfficialSourceLink()),
+            ],
           ],
         ),
       ),

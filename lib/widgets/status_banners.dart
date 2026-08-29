@@ -5,9 +5,14 @@ import '../services/location_service.dart';
 import '../theme/app_theme.dart';
 
 /// Aviso visible cuando no se están mostrando datos en vivo de la CNE:
-/// indica si se trata de la última caché guardada o de datos de ejemplo.
+/// indica si se trata de la última caché guardada, del snapshot incluido
+/// con la app, o si no se pudo obtener ningún dato.
 class DataSourceBanner extends StatelessWidget {
-  const DataSourceBanner({super.key, required this.result, required this.onRetry});
+  const DataSourceBanner({
+    super.key,
+    required this.result,
+    required this.onRetry,
+  });
 
   final GasStationsResult result;
   final Future<void> Function() onRetry;
@@ -18,10 +23,9 @@ class DataSourceBanner extends StatelessWidget {
       DataSource.cached =>
         'Sin conexión: mostrando precios guardados${_cachedAtSuffix()}',
       DataSource.bundled =>
-        'Mostrando precios de referencia (pueden no estar actualizados)',
-      DataSource.mock =>
-        'Mostrando datos de ejemplo mientras se cargan los '
-            'precios reales',
+        'Sin conexión: mostrando precios de la CNE${_bundledAtSuffix()}',
+      DataSource.unavailable =>
+        'No pudimos cargar los precios. Revisa tu conexión.',
       DataSource.live => '',
     };
 
@@ -58,12 +62,30 @@ class DataSourceBanner extends StatelessWidget {
     );
   }
 
-  String _cachedAtSuffix() {
-    final cachedAt = result.cachedAt;
-    if (cachedAt == null) return '';
-    final h = cachedAt.hour.toString().padLeft(2, '0');
-    final m = cachedAt.minute.toString().padLeft(2, '0');
-    return ' (actualizados $h:$m)';
+  String _cachedAtSuffix() => _dateSuffix(result.cachedAt);
+
+  String _bundledAtSuffix() => _dateSuffix(result.bundledGeneratedAt);
+
+  /// Da formato a una fecha para mostrarla en el banner: solo la hora si es
+  /// de hoy, o fecha y hora si es de otro día (para no dar a entender que un
+  /// dato de hace semanas es de "ahora").
+  String _dateSuffix(DateTime? at) {
+    if (at == null) return '';
+    final local = at.toLocal();
+    final now = DateTime.now();
+    final isToday =
+        local.year == now.year &&
+        local.month == now.month &&
+        local.day == now.day;
+
+    if (isToday) {
+      final h = local.hour.toString().padLeft(2, '0');
+      final m = local.minute.toString().padLeft(2, '0');
+      return ' (actualizados $h:$m)';
+    }
+    final d = local.day.toString().padLeft(2, '0');
+    final mo = local.month.toString().padLeft(2, '0');
+    return ' (del $d-$mo-${local.year})';
   }
 }
 

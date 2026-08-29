@@ -23,6 +23,7 @@ class _FakeCneFuelPriceService extends CneFuelPriceService {
 }
 
 const _cacheKey = 'cached_stations_v1';
+const _cacheTimestampKey = 'cached_stations_timestamp_v1';
 
 void main() {
   group('GasStationRepository', () {
@@ -56,21 +57,25 @@ void main() {
 
     test('usa el snapshot de estaciones cuando falla y no hay caché', () async {
       SharedPreferences.setMockInitialValues({});
+      final generatedAt = DateTime(2026, 8, 1);
       final repository = GasStationRepository(
         service: _FakeCneFuelPriceService(
           error: CneApiException('sin auth_key'),
         ),
-        bundledStationsLoader: ({bundle}) async => [
-          const GasStation(
-            id: 'bundled-1',
-            name: 'Copec Snapshot',
-            address: 'Av. Siempre Viva 123',
-            distanceKm: 0,
-            fuelType: FuelType.gas95,
-            price: 1234,
-            lastUpdated: 'hace 2 días',
-          ),
-        ],
+        bundledStationsLoader: ({bundle}) async => (
+          stations: [
+            const GasStation(
+              id: 'bundled-1',
+              name: 'Copec Snapshot',
+              address: 'Av. Siempre Viva 123',
+              distanceKm: 0,
+              fuelType: FuelType.gas95,
+              price: 1234,
+              lastUpdated: 'hace 2 días',
+            ),
+          ],
+          generatedAt: generatedAt,
+        ),
       );
 
       final result = await repository.fetchNearbyStations();
@@ -79,83 +84,127 @@ void main() {
       expect(result.isLiveData, isFalse);
       expect(result.stations, hasLength(1));
       expect(result.stations.first.name, 'Copec Snapshot');
+      expect(result.bundledGeneratedAt, generatedAt);
+    });
+
+    test('devuelve un resultado vacío y sin datos inventados si tampoco se '
+        'puede cargar el snapshot', () async {
+      SharedPreferences.setMockInitialValues({});
+      final repository = GasStationRepository(
+        service: _FakeCneFuelPriceService(
+          error: CneApiException('sin auth_key'),
+        ),
+        bundledStationsLoader: ({bundle}) async =>
+            (stations: <GasStation>[], generatedAt: null),
+      );
+
+      final result = await repository.fetchNearbyStations();
+
+      expect(result.source, DataSource.unavailable);
+      expect(result.isLiveData, isFalse);
+      expect(result.stations, isEmpty);
     });
 
     test(
-      'usa datos de ejemplo si tampoco se puede cargar el snapshot',
+      'ignora una caché de más de 7 días y usa el snapshot en su lugar',
       () async {
-        SharedPreferences.setMockInitialValues({});
+        final staleTimestamp = DateTime.now()
+            .subtract(const Duration(days: 8))
+            .millisecondsSinceEpoch;
+        SharedPreferences.setMockInitialValues({
+          _cacheKey: jsonEncode([
+            const GasStation(
+              id: 'cached-viejo',
+              name: 'Estación vieja en caché',
+              address: 'Calle Falsa 123',
+              distanceKm: 0.5,
+              fuelType: FuelType.gas95,
+              price: 1111,
+              lastUpdated: 'hace 8 días',
+            ).toJson(),
+          ]),
+          _cacheTimestampKey: staleTimestamp,
+        });
+
         final repository = GasStationRepository(
-          service: _FakeCneFuelPriceService(
-            error: CneApiException('sin auth_key'),
+          service: _FakeCneFuelPriceService(error: CneApiException('sin red')),
+          bundledStationsLoader: ({bundle}) async => (
+            stations: [
+              const GasStation(
+                id: 'bundled-fresco',
+                name: 'Copec Snapshot',
+                address: 'Av. Siempre Viva 123',
+                distanceKm: 0,
+                fuelType: FuelType.gas95,
+                price: 1234,
+                lastUpdated: 'hace 1 día',
+              ),
+            ],
+            generatedAt: DateTime.now(),
           ),
-          bundledStationsLoader: ({bundle}) async => [],
         );
 
         final result = await repository.fetchNearbyStations();
 
-        expect(result.source, DataSource.mock);
-        expect(result.isLiveData, isFalse);
-        expect(result.stations, isNotEmpty);
+        expect(result.source, DataSource.bundled);
+        expect(result.stations, hasLength(1));
+        expect(result.stations.first.name, 'Copec Snapshot');
       },
     );
 
-    test(
-      'conserva las 20 más cercanas por combustible y no descarta el GLP '
-      'aunque esté más lejos',
-      () async {
-        SharedPreferences.setMockInitialValues({});
+    test('conserva las 20 más cercanas por combustible y no descarta el GLP '
+        'aunque esté más lejos', () async {
+      SharedPreferences.setMockInitialValues({});
 
-        Map<String, dynamic> row(
-          String codigo,
-          double lng,
-          Map<String, dynamic> precios,
-        ) => {
-          'codigo': codigo,
-          'distribuidor': {'marca': 'Marca $codigo'},
-          'ubicacion': {
-            'direccion': 'Calle $codigo',
-            'latitud': '0',
-            'longitud': '$lng',
-          },
-          'precios': precios,
-        };
+      Map<String, dynamic> row(
+        String codigo,
+        double lng,
+        Map<String, dynamic> precios,
+      ) => {
+        'codigo': codigo,
+        'distribuidor': {'marca': 'Marca $codigo'},
+        'ubicacion': {
+          'direccion': 'Calle $codigo',
+          'latitud': '0',
+          'longitud': '$lng',
+        },
+        'precios': precios,
+      };
 
-        // 25 estaciones con 95 cerca (lng 0.01..0.25) y 12 con GLP más lejos
-        // (lng 0.5..6.0): el GLP no debe quedar fuera por un tope global.
-        final rows = [
-          for (var i = 1; i <= 25; i++)
-            row('g95-$i', 0.01 * i, {
-              'A95': {'precio': '1000'},
-            }),
-          for (var i = 1; i <= 12; i++)
-            row('glp-$i', 0.5 * i, {
-              'GLP': {'precio': '500'},
-            }),
-        ];
+      // 25 estaciones con 95 cerca (lng 0.01..0.25) y 12 con GLP más lejos
+      // (lng 0.5..6.0): el GLP no debe quedar fuera por un tope global.
+      final rows = [
+        for (var i = 1; i <= 25; i++)
+          row('g95-$i', 0.01 * i, {
+            'A95': {'precio': '1000'},
+          }),
+        for (var i = 1; i <= 12; i++)
+          row('glp-$i', 0.5 * i, {
+            'GLP': {'precio': '500'},
+          }),
+      ];
 
-        final repository = GasStationRepository(
-          service: _FakeCneFuelPriceService(rows: rows),
-        );
+      final repository = GasStationRepository(
+        service: _FakeCneFuelPriceService(rows: rows),
+      );
 
-        final result = await repository.fetchNearbyStations(
-          latitude: 0,
-          longitude: 0,
-        );
+      final result = await repository.fetchNearbyStations(
+        latitude: 0,
+        longitude: 0,
+      );
 
-        final gas95 = result.stations
-            .where((s) => s.fuelType == FuelType.gas95)
-            .toList();
-        final glp = result.stations
-            .where((s) => s.fuelType == FuelType.glp)
-            .toList();
+      final gas95 = result.stations
+          .where((s) => s.fuelType == FuelType.gas95)
+          .toList();
+      final glp = result.stations
+          .where((s) => s.fuelType == FuelType.glp)
+          .toList();
 
-        expect(gas95, hasLength(20)); // tope de 20 por combustible
-        expect(glp, hasLength(12)); // todas (≥10) pese a estar más lejos
-        // Las 20 de 95 son las más cercanas (g95-1..g95-20), no g95-25.
-        expect(gas95.map((s) => s.id), isNot(contains('g95-25-gas95')));
-      },
-    );
+      expect(gas95, hasLength(20)); // tope de 20 por combustible
+      expect(glp, hasLength(12)); // todas (≥10) pese a estar más lejos
+      // Las 20 de 95 son las más cercanas (g95-1..g95-20), no g95-25.
+      expect(gas95.map((s) => s.id), isNot(contains('g95-25-gas95')));
+    });
 
     test('usa la caché guardada cuando falla y hay caché previa', () async {
       final cachedStation = const GasStation(
@@ -169,6 +218,7 @@ void main() {
       );
       SharedPreferences.setMockInitialValues({
         _cacheKey: jsonEncode([cachedStation.toJson()]),
+        _cacheTimestampKey: DateTime.now().millisecondsSinceEpoch,
       });
 
       final repository = GasStationRepository(

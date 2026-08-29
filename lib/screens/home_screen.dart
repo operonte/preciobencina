@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../models/gas_station.dart';
 import '../models/place_suggestion.dart';
 import '../theme/app_theme.dart';
+import '../widgets/empty_results_message.dart';
 import '../widgets/map_preview.dart';
 import '../widgets/mascot.dart';
+import '../widgets/official_source_link.dart';
 import '../widgets/station_card.dart';
 import 'about_screen.dart';
 import 'station_detail_screen.dart';
@@ -28,6 +30,7 @@ class HomeScreen extends StatefulWidget {
     this.userLongitude,
     this.focusLatitude,
     this.focusLongitude,
+    this.isDataUnavailable = false,
   });
 
   final List<GasStation> stations;
@@ -37,6 +40,11 @@ class HomeScreen extends StatefulWidget {
   final Future<void> Function() onRefresh;
   final Set<String> favoriteIds;
   final ValueChanged<String> onToggleFavorite;
+
+  /// `true` cuando no se pudo obtener ningún dato (ni en vivo, ni en caché,
+  /// ni el snapshot incluido): cambia el mensaje de "sin resultados" por uno
+  /// que ofrece reintentar, en vez de sugerir que es un problema de filtro.
+  final bool isDataUnavailable;
 
   /// Sugerencias de lugares para el texto buscado actualmente.
   final List<PlaceSuggestion> suggestions;
@@ -192,7 +200,14 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 16),
             ] else
-              const _EmptyResultsMessage(),
+              EmptyResultsMessage(
+                message: widget.isDataUnavailable
+                    ? 'No pudimos cargar los precios. Revisa tu conexión '
+                          'e inténtalo de nuevo.'
+                    : 'No encontramos estaciones que coincidan con tu '
+                          'búsqueda o filtro.',
+                onRetry: widget.isDataUnavailable ? widget.onRefresh : null,
+              ),
             Stack(
               children: [
                 MapPreview(
@@ -218,6 +233,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 12),
+            const Center(child: OfficialSourceLink()),
           ],
         ),
       ),
@@ -248,7 +265,7 @@ class _PlaceSuggestionsList extends StatelessWidget {
             ListTile(
               leading: const Icon(
                 Icons.location_on_outlined,
-                color: AppColors.primary,
+                color: AppColors.primaryDark,
               ),
               title: Text(
                 place.label,
@@ -308,33 +325,6 @@ class _ReferencePlaceChip extends StatelessWidget {
   }
 }
 
-/// Mensaje mostrado cuando no hay estaciones que coincidan con el
-/// combustible seleccionado o el texto buscado.
-class _EmptyResultsMessage extends StatelessWidget {
-  const _EmptyResultsMessage();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          'No encontramos estaciones que coincidan con tu búsqueda o filtro.',
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: AppColors.textMuted),
-        ),
-      ),
-    );
-  }
-}
-
 /// Botón circular flotante sobre el mapa para volver a obtener la ubicación
 /// GPS del usuario y recentrar el mapa, similar al de apps como Uber o
 /// Google Maps.
@@ -356,7 +346,7 @@ class _GpsButton extends StatelessWidget {
           onTap: onPressed,
           child: const Padding(
             padding: EdgeInsets.all(10),
-            child: Icon(Icons.gps_fixed, color: AppColors.primary),
+            child: Icon(Icons.gps_fixed, color: AppColors.primaryDark),
           ),
         ),
       ),

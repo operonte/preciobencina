@@ -18,6 +18,10 @@
   <h1>Política de Privacidad</h1>
   <p class="updated">Vigente desde el 15 de junio de 2026</p>
 
+  <div style="background-color: #f9f9f9; border-left: 4px solid #2e7d32; padding: 12px 16px; margin-bottom: 24px; font-size: 0.9rem; color: #555;">
+    <strong>Exención de responsabilidad:</strong> PrecioBencina es una aplicación móvil desarrollada de manera independiente. Esta aplicación NO representa, no está asociada, ni tiene vinculación, afiliación o patrocinio oficial con la Comisión Nacional de Energía (CNE), el Gobierno de Chile, ni ningún otro organismo o entidad gubernamental.
+  </div>
+
   <p>Esta política describe cómo PrecioBencina (en adelante, "la aplicación" o "la app") trata la información de sus usuarios. Al usar la app aceptas las prácticas descritas aquí.</p>
 
   <h2>1. Quién desarrolla la app</h2>
@@ -30,6 +34,7 @@
     <li><strong>Datos anónimos de uso:</strong> recopilamos información estadística agregada y completamente anónima (por ejemplo, qué pantallas se visitan y qué filtros se usan) para entender cómo se usa la app y mejorarla. Estos datos no permiten identificarte.</li>
     <li><strong>Reportes de errores:</strong> cuando la app falla se envían automáticamente informes técnicos que incluyen el modelo del dispositivo, versión del sistema operativo y el seguimiento del error, pero no contienen datos personales.</li>
     <li><strong>Verificación de integridad:</strong> la app verifica que las solicitudes provengan de versiones legítimas, protegiendo los servicios de accesos no autorizados.</li>
+    <li><strong>Texto de búsqueda de direcciones:</strong> si escribes una dirección, comuna o lugar en el buscador, ese texto se envía a OpenStreetMap (servicio Nominatim) para encontrar sus coordenadas. No enviamos tu ubicación GPS ni ningún otro dato junto con esa búsqueda, solo el texto que escribiste.</li>
   </ul>
   <p>No recopilamos nombre, correo electrónico, número de teléfono, datos de pago ni ningún otro dato de identificación personal. La app <strong>no requiere registro ni creación de cuenta</strong>.</p>
 
@@ -44,8 +49,9 @@
   <h2>4. Compartición de datos con terceros</h2>
   <p>No vendemos ni cedemos datos a terceros con fines comerciales. Los únicos terceros que pueden recibir datos son:</p>
   <ul>
-    <li><strong>Proveedores de infraestructura en la nube:</strong> utilizamos servicios de terceros para el análisis anónimo de uso, reporte de errores y verificación de integridad de la app. Estos proveedores operan bajo sus propias políticas de privacidad y no reciben datos de identificación personal de los usuarios.</li>
-    <li><strong>Comisión Nacional de Energía (CNE):</strong> la app consulta la API pública de la CNE para obtener los precios de combustible. Esta consulta no incluye datos personales.</li>
+    <li><strong>Firebase (Google):</strong> usamos Firebase Analytics, Crashlytics y App Check para el análisis anónimo de uso, reporte de errores y verificación de integridad de la app. Firebase opera bajo la política de privacidad de Google y no recibe datos de identificación personal de los usuarios.</li>
+    <li><strong>Comisión Nacional de Energía (CNE):</strong> la app consulta la API pública de la CNE, a través de un servidor propio, para obtener los precios de combustible. Esta consulta no incluye datos personales.</li>
+    <li><strong>OpenStreetMap:</strong> el mapa que ves en la app y las búsquedas de direcciones se sirven desde OpenStreetMap. Al buscar una dirección, el texto que escribes se envía a su servicio de búsqueda (Nominatim); al mostrar el mapa, tu dispositivo descarga las imágenes del mapa (tiles) directamente desde sus servidores.</li>
   </ul>
 
   <h2>5. Seguridad</h2>

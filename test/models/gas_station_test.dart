@@ -78,10 +78,7 @@ void main() {
       });
 
       expect(stations, hasLength(2));
-      expect(
-        stations.firstWhere((s) => s.fuelType == FuelType.glp).price,
-        819,
-      );
+      expect(stations.firstWhere((s) => s.fuelType == FuelType.glp).price, 819);
       expect(
         stations.firstWhere((s) => s.fuelType == FuelType.kerosene).price,
         900,

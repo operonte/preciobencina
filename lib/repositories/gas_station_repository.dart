@@ -6,7 +6,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/bundled_stations.dart' as bundled;
-import '../data/mock_stations.dart';
 import '../models/gas_station.dart';
 import '../services/cne_fuel_price_service.dart';
 
@@ -19,12 +18,12 @@ enum DataSource {
   cached,
 
   /// Snapshot de estaciones reales incluido con la app, usado cuando no hay
-  /// datos en vivo ni en caché.
+  /// datos en vivo ni en caché reciente.
   bundled,
 
-  /// Datos de ejemplo (último recurso, si ni siquiera el snapshot está
-  /// disponible).
-  mock,
+  /// No se pudo obtener ningún dato: ni en vivo, ni en caché reciente, ni
+  /// del snapshot incluido con la app.
+  unavailable,
 }
 
 /// Resultado de cargar las estaciones: incluye la lista y de dónde vienen.
@@ -33,6 +32,7 @@ class GasStationsResult {
     required this.stations,
     required this.source,
     this.cachedAt,
+    this.bundledGeneratedAt,
   });
 
   final List<GasStation> stations;
@@ -42,20 +42,25 @@ class GasStationsResult {
   /// [DataSource.cached].
   final DateTime? cachedAt;
 
+  /// Fecha en que se generó el snapshot incluido con la app, solo aplica si
+  /// [source] es [DataSource.bundled].
+  final DateTime? bundledGeneratedAt;
+
   bool get isLiveData => source == DataSource.live;
 }
 
 /// Punto único de acceso a los datos de precios de combustible.
 ///
 /// Intenta obtener datos en vivo desde la CNE. Si falla, recurre a la última
-/// respuesta guardada en caché local; si tampoco existe, usa el snapshot de
-/// estaciones reales incluido con la app ([loadBundledStations]); y si eso
-/// también falla, cae a [mockStations] para que la app nunca se quede sin
-/// nada que mostrar.
+/// respuesta guardada en caché local (si no tiene más de [_cacheMaxAge]); si
+/// tampoco hay caché vigente, usa el snapshot de estaciones reales incluido
+/// con la app ([loadBundledStations]); y si eso también falla, devuelve un
+/// resultado vacío con [DataSource.unavailable] para que la UI ofrezca
+/// reintentar en vez de mostrar datos inventados.
 class GasStationRepository {
   GasStationRepository({
     CneFuelPriceService? service,
-    Future<List<GasStation>> Function({AssetBundle? bundle})?
+    Future<bundled.BundledStations> Function({AssetBundle? bundle})?
     bundledStationsLoader,
   }) : _service = service ?? CneFuelPriceService(),
        _loadBundledStations =
@@ -64,8 +69,14 @@ class GasStationRepository {
   static const _cacheKey = 'cached_stations_v1';
   static const _cacheTimestampKey = 'cached_stations_timestamp_v1';
 
+  /// Antigüedad máxima que se acepta de la caché local antes de preferir el
+  /// snapshot incluido con la app. Sin este límite, una caché de meses atrás
+  /// se mostraría como si fuera reciente (ver [_cachedAtSuffix] en
+  /// `status_banners.dart`, que si es de hoy solo muestra la hora).
+  static const _cacheMaxAge = Duration(days: 7);
+
   final CneFuelPriceService _service;
-  final Future<List<GasStation>> Function({AssetBundle? bundle})
+  final Future<bundled.BundledStations> Function({AssetBundle? bundle})
   _loadBundledStations;
 
   /// Número de estaciones a conservar por cada tipo de combustible. La CNE
@@ -102,7 +113,7 @@ class GasStationRepository {
       return GasStationsResult(stations: stations, source: DataSource.live);
     } catch (error) {
       developer.log(
-        'No se pudieron obtener datos de la CNE, usando datos guardados o de ejemplo: $error',
+        'No se pudieron obtener datos de la CNE, usando datos guardados o el snapshot incluido: $error',
         name: 'GasStationRepository',
       );
       return _fallback(latitude: latitude, longitude: longitude);
@@ -128,15 +139,21 @@ class GasStationRepository {
     final limited = <GasStation>[];
     for (final group in byFuel.values) {
       if (latitude != null && longitude != null) {
-        group.sort(
-          (a, b) => _distanceFromStation(
-            a,
-            latitude,
-            longitude,
-          ).compareTo(_distanceFromStation(b, latitude, longitude)),
+        // Calcula la distancia una sola vez por estación (no en cada
+        // comparación del sort) antes de ordenar por ese valor ya listo.
+        final withDistance = [
+          for (final station in group)
+            (
+              station: station,
+              distance: _distanceFromStation(station, latitude, longitude),
+            ),
+        ]..sort((a, b) => a.distance.compareTo(b.distance));
+        limited.addAll(
+          withDistance.take(_maxStationsPerFuel).map((e) => e.station),
         );
+      } else {
+        limited.addAll(group.take(_maxStationsPerFuel));
       }
-      limited.addAll(group.take(_maxStationsPerFuel));
     }
     return limited;
   }
@@ -159,32 +176,39 @@ class GasStationRepository {
     double? longitude,
   }) async {
     final cached = await _readCache();
-    if (cached != null && cached.stations.isNotEmpty) {
+    final cachedAt = cached?.cachedAt;
+    final cacheIsFresh =
+        cachedAt != null && DateTime.now().difference(cachedAt) <= _cacheMaxAge;
+    if (cached != null && cached.stations.isNotEmpty && cacheIsFresh) {
       return GasStationsResult(
         stations: cached.stations,
         source: DataSource.cached,
-        cachedAt: cached.cachedAt,
+        cachedAt: cachedAt,
       );
     }
 
     try {
-      final stations = await _loadBundledStations();
-      if (stations.isEmpty) throw StateError('snapshot vacío');
+      final bundledData = await _loadBundledStations();
+      if (bundledData.stations.isEmpty) throw StateError('snapshot vacío');
 
       return GasStationsResult(
         stations: _limitNearbyPerFuel(
-          stations,
+          bundledData.stations,
           latitude: latitude,
           longitude: longitude,
         ),
         source: DataSource.bundled,
+        bundledGeneratedAt: bundledData.generatedAt,
       );
     } catch (error) {
       developer.log(
-        'No se pudo cargar el snapshot de estaciones, usando datos de ejemplo: $error',
+        'No se pudo cargar el snapshot de estaciones: $error',
         name: 'GasStationRepository',
       );
-      return GasStationsResult(stations: mockStations, source: DataSource.mock);
+      return const GasStationsResult(
+        stations: [],
+        source: DataSource.unavailable,
+      );
     }
   }
 

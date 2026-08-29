@@ -6,7 +6,7 @@ import '../theme/app_theme.dart';
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
-  static const _version = '1.2.0';
+  static const _version = '1.3.1';
 
   static const _faqs = [
     (
@@ -53,7 +53,9 @@ class AboutScreen extends StatelessWidget {
       '¿Cómo funciona el buscador de direcciones?',
       'Puedes escribir una dirección, ciudad o lugar en el buscador para '
           'centrar el mapa en ese punto y ver las bencineras cercanas a él, sin '
-          'necesidad de que estés físicamente ahí.',
+          'necesidad de que estés físicamente ahí. La búsqueda y el mapa usan '
+          'OpenStreetMap, un proyecto de mapas colaborativo y gratuito (no es '
+          'un servicio de la CNE).',
     ),
     (
       '¿Para qué sirve el botón de GPS?',
@@ -111,7 +113,7 @@ class AboutScreen extends StatelessWidget {
                   color: AppColors.textDark,
                 ),
               ),
-              iconColor: AppColors.primary,
+              iconColor: AppColors.primaryDark,
               collapsedIconColor: AppColors.textMuted,
               children: [
                 Text(
@@ -127,17 +129,32 @@ class AboutScreen extends StatelessWidget {
           const Divider(height: 32, indent: 20, endIndent: 20),
           _SectionHeader('Links útiles'),
           _LinkTile(
+            icon: Icons.account_balance_outlined,
+            label: 'Comisión Nacional de Energía (CNE)',
+            subtitle: 'Fuente oficial de los precios · cne.cl',
+            onTap: () => _launch(context, 'https://www.cne.cl'),
+          ),
+          _LinkTile(
             icon: Icons.local_gas_station_outlined,
             label: 'Ver precios en BencinaEnLínea',
+            subtitle: 'Portal público de la CNE',
             onTap: () => _launch(
               context,
               'https://www.bencinaenlinea.cl/#/busqueda_estaciones',
             ),
           ),
           _LinkTile(
+            icon: Icons.map_outlined,
+            label: 'OpenStreetMap',
+            subtitle: 'Fuente del mapa y la búsqueda de direcciones',
+            onTap: () =>
+                _launch(context, 'https://www.openstreetmap.org/copyright'),
+          ),
+          _LinkTile(
             icon: Icons.report_problem_outlined,
             label: 'Reclamo en la SEC',
-            onTap: () => _launch(context, 'https://www.sec.cl/reclamar-en-sec/'),
+            onTap: () =>
+                _launch(context, 'https://www.sec.cl/reclamar-en-sec/'),
           ),
           _LinkTile(
             icon: Icons.account_balance_outlined,
@@ -156,22 +173,41 @@ class AboutScreen extends StatelessWidget {
             ),
           ),
           const Divider(height: 32, indent: 20, endIndent: 20),
+          _SectionHeader('Exención de responsabilidad'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+            child: Text(
+              'PrecioBencina es una aplicación desarrollada de manera independiente. '
+              'No representa, ni está asociada, vinculada, afiliada o patrocinada de forma oficial por la '
+              'Comisión Nacional de Energía (CNE), el Ministerio de Energía, el Gobierno de Chile, ni '
+              'ninguna otra entidad gubernamental.\n\n'
+              'Fuentes de información que usa la app:\n'
+              '• Precios y estaciones de servicio: Comisión Nacional de Energía (CNE), de libre acceso '
+              'público (cne.cl, api.cne.cl, bencinaenlinea.cl, gasenlinea.gob.cl).\n'
+              '• Mapas y búsqueda de direcciones: OpenStreetMap y sus colaboradores.\n'
+              '• Cómo llegar: la app de mapas que ya tengas instalada (por ejemplo Google Maps).\n'
+              '• Sin conexión: la última consulta a la CNE guardada en tu teléfono, o una copia de '
+              'respaldo de datos de la CNE incluida con la app. En ambos casos se indica en pantalla '
+              'la fecha de esos precios.',
+              style: textTheme.bodySmall?.copyWith(
+                color: AppColors.textMuted,
+                height: 1.5,
+              ),
+            ),
+          ),
+          const Divider(height: 32, indent: 20, endIndent: 20),
           _SectionHeader('Legal'),
           _LinkTile(
             icon: Icons.privacy_tip_outlined,
             label: 'Política de Privacidad',
-            onTap: () => _launch(
-              context,
-              'https://preciobencina.web.app/privacidad',
-            ),
+            onTap: () =>
+                _launch(context, 'https://preciobencina.web.app/privacidad'),
           ),
           _LinkTile(
             icon: Icons.description_outlined,
             label: 'Términos de Uso',
-            onTap: () => _launch(
-              context,
-              'https://preciobencina.web.app/terminos',
-            ),
+            onTap: () =>
+                _launch(context, 'https://preciobencina.web.app/terminos'),
           ),
           const Divider(height: 32, indent: 20, endIndent: 20),
           _SectionHeader('Contacto'),
@@ -208,7 +244,7 @@ class _SectionHeader extends StatelessWidget {
         title,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
           fontWeight: FontWeight.w700,
-          color: AppColors.primary,
+          color: AppColors.primaryDark,
         ),
       ),
     );
@@ -232,7 +268,7 @@ class _LinkTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-      leading: Icon(icon, color: AppColors.primary),
+      leading: Icon(icon, color: AppColors.primaryDark),
       title: Text(
         label,
         style: Theme.of(

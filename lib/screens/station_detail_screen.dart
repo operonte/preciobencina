@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/gas_station.dart';
 import '../theme/app_theme.dart';
 import '../widgets/map_preview.dart';
+import '../widgets/official_source_link.dart';
 
 class StationDetailScreen extends StatefulWidget {
   const StationDetailScreen({
@@ -104,7 +105,7 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
                             fontWeight: FontWeight.w700,
                             color: isCheapest
                                 ? AppColors.accentGreen
-                                : AppColors.primary,
+                                : AppColors.primaryDark,
                           ),
                         ),
                       ],
@@ -137,6 +138,8 @@ class _StationDetailScreenState extends State<StationDetailScreen> {
               icon: const Icon(Icons.directions),
               label: const Text('Cómo llegar'),
             ),
+            const SizedBox(height: 12),
+            const Center(child: OfficialSourceLink()),
           ],
         ),
       ),
