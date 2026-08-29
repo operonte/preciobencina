@@ -21,16 +21,33 @@ Future<void> _initFirebase() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-    await FirebaseAppCheck.instance.activate(
-      providerAndroid: const AndroidPlayIntegrityProvider(),
-      providerApple: const AppleAppAttestProvider(),
-    );
 
     FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
     PlatformDispatcher.instance.onError = (error, stack) {
       FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
       return true;
     };
+
+    // Separado del resto: si App Check falla en activarse, no debe tumbar
+    // el registro de errores de Crashlytics (antes estaba en el mismo
+    // try/catch, así que un fallo acá dejaba a la app SIN reportar crashes
+    // tampoco, sin que hubiera relación entre ambas cosas). El error se
+    // manda a Crashlytics (no fatal) para poder ver la causa real sin
+    // depender de conectar el teléfono por USB.
+    try {
+      await FirebaseAppCheck.instance.activate(
+        providerAndroid: const AndroidPlayIntegrityProvider(),
+        providerApple: const AppleAppAttestProvider(),
+      );
+    } catch (error, stack) {
+      developer.log('No se pudo activar App Check: $error', name: 'main');
+      await FirebaseCrashlytics.instance.recordError(
+        error,
+        stack,
+        reason: 'Fallo al activar Firebase App Check',
+        fatal: false,
+      );
+    }
   } catch (error) {
     developer.log('No se pudo inicializar Firebase: $error', name: 'main');
   }
