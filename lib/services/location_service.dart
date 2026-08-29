@@ -18,16 +18,28 @@ class LocationService {
   /// Devuelve la posición actual, o `null` si el usuario no otorgó permiso,
   /// el servicio de ubicación está deshabilitado, o la plataforma no lo
   /// soporta.
+  ///
+  /// Primero intenta la última posición conocida por el sistema (casi
+  /// instantánea si el teléfono ya la tiene guardada, aunque sea de otra
+  /// app) y solo si no hay ninguna, pide una posición nueva. El primer GPS
+  /// "en frío" (recién instalada la app, en interiores) puede tardar bastante
+  /// más que los 8 segundos que se usaban antes solo para la posición
+  /// nueva: con eso, aunque el permiso estuviera otorgado, la app caía al
+  /// mismo resultado que si no hubiera permiso en absoluto.
   Future<Position?> getCurrentPosition() async {
     try {
       if (await checkAvailability() != LocationAvailability.available) {
         return null;
       }
+
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown != null) return lastKnown;
+
       return await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.medium,
         ),
-      ).timeout(const Duration(seconds: 8));
+      ).timeout(const Duration(seconds: 20));
     } catch (_) {
       return null;
     }

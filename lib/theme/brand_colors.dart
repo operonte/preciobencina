@@ -4,8 +4,10 @@ import 'app_theme.dart';
 
 /// Colores corporativos aproximados de las principales cadenas de
 /// bencineras en Chile, usados para distinguir rápidamente cada estación
-/// en el mapa y en las listas. Si la marca no es reconocida, se usa el
-/// color primario de la app.
+/// en el mapa y en las listas. Si la marca no es reconocida, se usa
+/// `AppColors.primaryDark` (no `primary`: este color también se usa como
+/// ícono/fondo con texto encima, y `primary` no cumple el contraste
+/// mínimo WCAG AA).
 const _brandColors = <String, Color>{
   'COPEC': Color(0xFFE2231A),
   'SHELL': Color(0xFFFFD500),
@@ -18,15 +20,20 @@ const _brandColors = <String, Color>{
   'TERPEL': Color(0xFFE2231A),
 };
 
-/// Devuelve el color corporativo asociado a [marca], o el color primario de
-/// la app si no se reconoce la marca.
-Color brandColor(String marca) {
+/// Caché de [brandColor] por nombre exacto de estación: se llama en cada
+/// build de cada tarjeta y cada pin del mapa, y la búsqueda es lineal sobre
+/// [_brandColors], así que vale la pena no repetirla para el mismo nombre.
+final _brandColorCache = <String, Color>{};
+
+/// Devuelve el color corporativo asociado a [marca], o `AppColors.primaryDark`
+/// si no se reconoce la marca.
+Color brandColor(String marca) => _brandColorCache.putIfAbsent(marca, () {
   final upper = marca.toUpperCase();
   for (final entry in _brandColors.entries) {
     if (upper.contains(entry.key)) return entry.value;
   }
-  return AppColors.primary;
-}
+  return AppColors.primaryDark;
+});
 
 /// Color de texto/ícono con buen contraste sobre [brandColor]. Las marcas
 /// con fondos claros (ej. amarillo) necesitan ícono oscuro.
@@ -52,11 +59,15 @@ const _brandLogos = <String, String>{
   'HN': 'assets/iconos/hn_icono.png',
 };
 
+/// Caché de [brandLogo] por nombre exacto de estación, por la misma razón
+/// que [_brandColorCache].
+final _brandLogoCache = <String, String?>{};
+
 /// Devuelve la ruta del logo de [marca], o `null` si no hay uno disponible.
-String? brandLogo(String marca) {
+String? brandLogo(String marca) => _brandLogoCache.putIfAbsent(marca, () {
   final upper = marca.toUpperCase();
   for (final entry in _brandLogos.entries) {
     if (upper.contains(entry.key)) return entry.value;
   }
   return null;
-}
+});

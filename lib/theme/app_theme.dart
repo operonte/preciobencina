@@ -7,9 +7,23 @@ class AppColors {
 
   static const background = Color(0xFFFCF3E6);
   static const surface = Color(0xFFFFFFFF);
+  // `primary` es solo decorativo (rellenos, bordes, acentos sin texto
+  // encima): blanco sobre este naranja da 2.6:1, bajo el mínimo WCAG AA
+  // (4.5:1 texto, 3:1 componentes gráficos). Cualquier texto o ícono que
+  // vaya sobre `primary`, o que use `primary` como color de texto sobre
+  // fondo claro, debe usar `primaryDark` en su lugar.
   static const primary = Color(0xFFFF7A30); // naranja bencina
-  static const primaryDark = Color(0xFFE8650F);
-  static const accentGreen = Color(0xFF2FAE60); // "la más barata"
+  // Oscurecido respecto al naranja original (#E8650F, 3.0:1) para cumplir
+  // el contraste mínimo WCAG AA en texto normal. Con margen: los banners de
+  // estado lo muestran sobre `primary` al 12% de opacidad (no sobre
+  // `background` puro), y ese fondo compuesto da menos contraste del que
+  // parece a simple vista (ver test "cumple contraste y tamaño de tap
+  // mínimos" en widget_test.dart, que corrió esto en carne propia).
+  static const primaryDark = Color(0xFFA03F05);
+  // "la más barata": oscurecido respecto al verde original (#2FAE60, 2.9:1)
+  // para cumplir WCAG AA tanto como texto sobre fondo claro como con blanco
+  // encima (5.4:1 en ambos casos).
+  static const accentGreen = Color(0xFF1E7A43);
   static const accentGreenLight = Color(0xFFE3F6EA);
   static const textDark = Color(0xFF2B2118);
   // Oscurecido respecto al naranja original (#8A7B6E) para cumplir el
@@ -47,7 +61,7 @@ class AppTheme {
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: AppColors.surface,
-        selectedItemColor: AppColors.primary,
+        selectedItemColor: AppColors.primaryDark,
         unselectedItemColor: AppColors.textMuted,
         showUnselectedLabels: true,
         type: BottomNavigationBarType.fixed,
@@ -74,7 +88,7 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
+          backgroundColor: AppColors.primaryDark,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(

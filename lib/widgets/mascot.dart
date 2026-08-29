@@ -26,7 +26,9 @@ class Mascot extends StatelessWidget {
         ],
       ),
       alignment: Alignment.center,
-      child: Text('⛽', style: TextStyle(fontSize: size * 0.55)),
+      child: ExcludeSemantics(
+        child: Text('⛽', style: TextStyle(fontSize: size * 0.55)),
+      ),
     );
   }
 }

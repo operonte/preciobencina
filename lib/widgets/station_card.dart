@@ -67,35 +67,37 @@ class StationCard extends StatelessWidget {
               ),
               const SizedBox(width: 14),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (isCheapest)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 2),
-                        child: Text(
-                          'LA MÁS BARATA',
-                          style: textTheme.labelSmall?.copyWith(
-                            color: AppColors.accentGreen,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.5,
+                child: MergeSemantics(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (isCheapest)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 2),
+                          child: Text(
+                            'LA MÁS BARATA',
+                            style: textTheme.labelSmall?.copyWith(
+                              color: AppColors.accentGreen,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                            ),
                           ),
                         ),
+                      Text(
+                        station.name,
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    Text(
-                      station.name,
-                      style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+                      const SizedBox(height: 2),
+                      Text(
+                        '${station.distanceKm.toStringAsFixed(1)} km · actualizado ${station.lastUpdated}',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: AppColors.textMuted,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${station.distanceKm.toStringAsFixed(1)} km · actualizado ${station.lastUpdated}',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -103,37 +105,47 @@ class StationCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   if (onToggleFavorite != null)
-                    SizedBox(
-                      width: 28,
-                      height: 28,
-                      child: IconButton(
-                        padding: EdgeInsets.zero,
-                        iconSize: 20,
-                        tooltip: isFavorite
-                            ? 'Quitar de favoritos'
-                            : 'Agregar a favoritos',
-                        icon: Icon(
-                          isFavorite ? Icons.favorite : Icons.favorite_border,
-                          color: isFavorite
-                              ? AppColors.accentGreen
-                              : AppColors.textMuted,
+                    Semantics(
+                      toggled: isFavorite,
+                      child: SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: IconButton(
+                          padding: EdgeInsets.zero,
+                          iconSize: 20,
+                          tooltip: isFavorite
+                              ? 'Quitar de favoritos'
+                              : 'Agregar a favoritos',
+                          icon: Icon(
+                            isFavorite ? Icons.favorite : Icons.favorite_border,
+                            color: isFavorite
+                                ? AppColors.accentGreen
+                                : AppColors.textMuted,
+                          ),
+                          onPressed: onToggleFavorite,
                         ),
-                        onPressed: onToggleFavorite,
                       ),
                     ),
-                  Text(
-                    station.formattedPrice,
-                    style: textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: isCheapest
-                          ? AppColors.accentGreen
-                          : AppColors.primary,
-                    ),
-                  ),
-                  Text(
-                    station.fuelType.unitLabel,
-                    style: textTheme.bodySmall?.copyWith(
-                      color: AppColors.textMuted,
+                  MergeSemantics(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          station.formattedPrice,
+                          style: textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: isCheapest
+                                ? AppColors.accentGreen
+                                : AppColors.primaryDark,
+                          ),
+                        ),
+                        Text(
+                          station.fuelType.unitLabel,
+                          style: textTheme.bodySmall?.copyWith(
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

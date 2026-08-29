@@ -4,6 +4,15 @@ import 'package:http/http.dart' as http;
 
 import '../models/place_suggestion.dart';
 
+/// Resultado de una búsqueda de lugares: `suggestions` vacío puede
+/// significar que no hubo coincidencias, o que la búsqueda falló (sin
+/// conexión, timeout, error del servidor). `failed` distingue un caso del
+/// otro para que la UI pueda avisar solo en el segundo.
+typedef GeocodingResult = ({List<PlaceSuggestion> suggestions, bool failed});
+
+const _noResults = (suggestions: <PlaceSuggestion>[], failed: false);
+const _searchFailed = (suggestions: <PlaceSuggestion>[], failed: true);
+
 /// Busca lugares (ciudades, comunas, direcciones) usando Nominatim, el
 /// servicio de geocodificación de OpenStreetMap, para que el usuario pueda
 /// centrar el mapa en cualquier punto de Chile sin usar su GPS.
@@ -14,11 +23,10 @@ class GeocodingService {
 
   static const _baseUrl = 'https://nominatim.openstreetmap.org/search';
 
-  /// Devuelve hasta 5 lugares que coincidan con [query], o una lista vacía
-  /// si no hay coincidencias o la búsqueda falla (sin conexión, etc.).
-  Future<List<PlaceSuggestion>> search(String query) async {
+  /// Devuelve hasta 5 lugares que coincidan con [query].
+  Future<GeocodingResult> search(String query) async {
     final trimmed = query.trim();
-    if (trimmed.length < 3) return const [];
+    if (trimmed.length < 3) return _noResults;
 
     final uri = Uri.parse(_baseUrl).replace(
       queryParameters: {
@@ -43,12 +51,12 @@ class GeocodingService {
             },
           )
           .timeout(const Duration(seconds: 6));
-      if (response.statusCode != 200) return const [];
+      if (response.statusCode != 200) return _searchFailed;
 
       final body = jsonDecode(response.body);
-      if (body is! List) return const [];
+      if (body is! List) return _searchFailed;
 
-      return body
+      final suggestions = body
           .whereType<Map<String, dynamic>>()
           .map((place) {
             final lat = double.tryParse(place['lat']?.toString() ?? '');
@@ -59,8 +67,9 @@ class GeocodingService {
           })
           .whereType<PlaceSuggestion>()
           .toList();
+      return (suggestions: suggestions, failed: false);
     } catch (_) {
-      return const [];
+      return _searchFailed;
     }
   }
 }

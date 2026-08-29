@@ -248,8 +248,9 @@ enum SortOrder { price, distance }
 extension GasStationListX on List<GasStation> {
   /// La estación con el precio más bajo de la lista (ignora las que no
   /// informan precio).
-  GasStation get cheapest =>
-      where((s) => s.price != null).reduce((a, b) => a.price! < b.price! ? a : b);
+  GasStation get cheapest => where(
+    (s) => s.price != null,
+  ).reduce((a, b) => a.price! < b.price! ? a : b);
 
   /// La estación con el precio más bajo, o `null` si la lista está vacía o
   /// ninguna informa precio.

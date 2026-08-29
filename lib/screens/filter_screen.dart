@@ -55,7 +55,7 @@ class FilterScreen extends StatelessWidget {
                 label: Text(fuel.label),
                 selected: selected,
                 onSelected: (_) => onFuelChanged(fuel),
-                selectedColor: AppColors.primary,
+                selectedColor: AppColors.primaryDark,
                 backgroundColor: AppColors.surface,
                 labelStyle: textTheme.bodyMedium?.copyWith(
                   color: selected ? Colors.white : AppColors.textDark,
@@ -84,13 +84,13 @@ class FilterScreen extends StatelessWidget {
                   RadioListTile<SortOrder>(
                     value: SortOrder.price,
                     title: Text('Precio (menor a mayor)'),
-                    activeColor: AppColors.primary,
+                    activeColor: AppColors.primaryDark,
                   ),
                   Divider(height: 1, indent: 16, endIndent: 16),
                   RadioListTile<SortOrder>(
                     value: SortOrder.distance,
                     title: Text('Distancia (más cercana)'),
-                    activeColor: AppColors.primary,
+                    activeColor: AppColors.primaryDark,
                   ),
                 ],
               ),

@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
+import '../config/default_location.dart';
 import '../models/gas_station.dart';
 import '../models/place_suggestion.dart';
 import '../repositories/gas_station_repository.dart';
@@ -70,7 +71,21 @@ class _MainScaffoldState extends State<MainScaffold> {
     final position = availability == LocationAvailability.available
         ? await _locationService.getCurrentPosition()
         : null;
-    final reference = _referencePlace;
+
+    // Sin GPS y sin lugar buscado: se usa un punto de referencia fijo y
+    // visible (ver `config/default_location.dart`) en vez de dejar que la
+    // CNE devuelva sus estaciones en orden natural (de norte a sur), lo que
+    // mostraría bencineras de Iquique como si fueran cercanas a cualquiera.
+    final reference =
+        _referencePlace ??
+        (position == null
+            ? const PlaceSuggestion(
+                label: defaultLocationLabel,
+                latitude: defaultLatitude,
+                longitude: defaultLongitude,
+              )
+            : null);
+
     final result = await _repository.fetchNearbyStations(
       latitude: reference?.latitude ?? position?.latitude,
       longitude: reference?.longitude ?? position?.longitude,
@@ -80,6 +95,7 @@ class _MainScaffoldState extends State<MainScaffold> {
       _result = result;
       _userPosition = position;
       _locationAvailability = availability;
+      _referencePlace = reference;
     });
   }
 
@@ -107,9 +123,18 @@ class _MainScaffoldState extends State<MainScaffold> {
       return;
     }
     _suggestionsDebounce = Timer(const Duration(milliseconds: 400), () async {
-      final suggestions = await _geocodingService.search(value);
+      final result = await _geocodingService.search(value);
       if (!mounted) return;
-      setState(() => _suggestions = suggestions);
+      setState(() => _suggestions = result.suggestions);
+      if (result.failed) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No se pudo buscar. Revisa tu conexión e inténtalo de nuevo.',
+            ),
+          ),
+        );
+      }
     });
   }
 
@@ -156,9 +181,7 @@ class _MainScaffoldState extends State<MainScaffold> {
       case LocationAvailability.permissionDenied:
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text(
-              'PrecioBencina no tiene permiso de ubicación.',
-            ),
+            content: const Text('PrecioBencina no tiene permiso de ubicación.'),
             action: SnackBarAction(
               label: 'Ajustes',
               onPressed: _locationService.openAppSettings,
@@ -212,6 +235,7 @@ class _MainScaffoldState extends State<MainScaffold> {
     final referencePlace = _referencePlace;
     final filteredStations = _visibleStations(result);
     final cheapest = filteredStations.cheapestOrNull;
+    final isDataUnavailable = result.source == DataSource.unavailable;
 
     final screens = [
       HomeScreen(
@@ -231,6 +255,7 @@ class _MainScaffoldState extends State<MainScaffold> {
         userLongitude: userPosition?.longitude,
         focusLatitude: referencePlace?.latitude,
         focusLongitude: referencePlace?.longitude,
+        isDataUnavailable: isDataUnavailable,
       ),
       ListScreen(
         stations: filteredStations,
@@ -239,6 +264,7 @@ class _MainScaffoldState extends State<MainScaffold> {
         onRefresh: _loadStations,
         favoriteIds: _favoriteIds,
         onToggleFavorite: _toggleFavorite,
+        isDataUnavailable: isDataUnavailable,
       ),
       FilterScreen(
         selectedFuel: _selectedFuel,

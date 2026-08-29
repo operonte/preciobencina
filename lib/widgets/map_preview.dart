@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../config/default_location.dart';
 import '../models/gas_station.dart';
 import '../theme/app_theme.dart';
 import '../theme/brand_colors.dart';
 
 /// Centro por defecto (Providencia, Santiago) usado cuando no hay
 /// coordenadas de estaciones ni del usuario disponibles.
-const _defaultCenter = LatLng(-33.4280, -70.6150);
+const _defaultCenter = LatLng(defaultLatitude, defaultLongitude);
 
 /// Mapa real (OpenStreetMap) con pines de precio por estación y la
 /// ubicación del usuario, si está disponible.
@@ -87,51 +89,90 @@ class _MapPreviewState extends State<MapPreview> {
       borderRadius: BorderRadius.circular(24),
       child: AspectRatio(
         aspectRatio: 1.1,
-        child: FlutterMap(
-          mapController: _mapController,
-          options: MapOptions(
-            initialCenter: center,
-            initialZoom: 14,
-            minZoom: 4,
-            maxZoom: 18,
-            interactionOptions: const InteractionOptions(
-              flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+        child: Semantics(
+          label:
+              'Mapa de estaciones cercanas. Para navegarlas con lector de '
+              'pantalla, usa la pestaña Lista.',
+          container: true,
+          child: FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: center,
+              initialZoom: 14,
+              minZoom: 4,
+              maxZoom: 18,
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'cl.preciobencina.preciobencina',
+              ),
+              MarkerLayer(
+                markers: [
+                  if (widget.userLatitude != null &&
+                      widget.userLongitude != null)
+                    Marker(
+                      point: LatLng(
+                        widget.userLatitude!,
+                        widget.userLongitude!,
+                      ),
+                      width: 24,
+                      height: 24,
+                      child: const _UserDot(),
+                    ),
+                  for (final station in located)
+                    Marker(
+                      point: LatLng(station.latitude!, station.longitude!),
+                      width: 90,
+                      height: 64,
+                      alignment: Alignment.topCenter,
+                      child: _PricePin(
+                        station: station,
+                        isCheapest: station.id == widget.cheapestId,
+                        onTap: () => widget.onStationTap?.call(station),
+                      ),
+                    ),
+                ],
+              ),
+              const Positioned(left: 8, bottom: 8, child: _OsmAttribution()),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Atribución a OpenStreetMap, siempre visible sobre el mapa (no oculta
+/// detrás de un ícono que haya que tocar) y con el texto como link, según
+/// el ejemplo visual de la guía de atribución de la OSM Foundation:
+/// https://osmfoundation.org/wiki/Licence/Attribution_Guidelines
+class _OsmAttribution extends StatelessWidget {
+  const _OsmAttribution();
+
+  static final _uri = Uri.parse('https://www.openstreetmap.org/copyright');
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.white.withValues(alpha: 0.75),
+      borderRadius: BorderRadius.circular(4),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(4),
+        onTap: () => launchUrl(_uri),
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+          child: Text(
+            '© OpenStreetMap contributors',
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.black87,
+              decoration: TextDecoration.underline,
             ),
           ),
-          children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'cl.preciobencina.preciobencina',
-            ),
-            MarkerLayer(
-              markers: [
-                if (widget.userLatitude != null && widget.userLongitude != null)
-                  Marker(
-                    point: LatLng(widget.userLatitude!, widget.userLongitude!),
-                    width: 24,
-                    height: 24,
-                    child: const _UserDot(),
-                  ),
-                for (final station in located)
-                  Marker(
-                    point: LatLng(station.latitude!, station.longitude!),
-                    width: 90,
-                    height: 64,
-                    alignment: Alignment.topCenter,
-                    child: _PricePin(
-                      station: station,
-                      isCheapest: station.id == widget.cheapestId,
-                      onTap: () => widget.onStationTap?.call(station),
-                    ),
-                  ),
-              ],
-            ),
-            const RichAttributionWidget(
-              attributions: [
-                TextSourceAttribution('OpenStreetMap contributors'),
-              ],
-            ),
-          ],
         ),
       ),
     );
@@ -175,63 +216,76 @@ class _PricePin extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isCheapest ? AppColors.accentGreen : AppColors.primary;
+    final color = isCheapest ? AppColors.accentGreen : AppColors.primaryDark;
     final badgeColor = brandColor(station.name);
     final logo = brandLogo(station.name);
-    return GestureDetector(
-      onTap: onTap,
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 28,
-              height: 28,
-              padding: logo != null ? const EdgeInsets.all(4) : EdgeInsets.zero,
-              decoration: BoxDecoration(
-                color: logo != null ? Colors.white : badgeColor,
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: logo != null
-                  ? ClipOval(child: Image.asset(logo, fit: BoxFit.contain))
-                  : Icon(
-                      Icons.local_gas_station,
-                      size: 16,
-                      color: brandForeground(badgeColor),
+    final label = StringBuffer(station.name)
+      ..write(', ${station.formattedPrice} ${station.fuelType.unitLabel}');
+    if (isCheapest) label.write(', la más barata');
+
+    return Semantics(
+      button: true,
+      label: label.toString(),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                padding: logo != null
+                    ? const EdgeInsets.all(4)
+                    : EdgeInsets.zero,
+                decoration: BoxDecoration(
+                  color: logo != null ? Colors.white : badgeColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
                     ),
-            ),
-            const SizedBox(height: 2),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withValues(alpha: 0.35),
-                    blurRadius: 6,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+                  ],
+                ),
+                child: logo != null
+                    ? ClipOval(child: Image.asset(logo, fit: BoxFit.contain))
+                    : Icon(
+                        Icons.local_gas_station,
+                        size: 16,
+                        color: brandForeground(badgeColor),
+                      ),
               ),
-              child: Text(
-                station.formattedPrice,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
+              const SizedBox(height: 2),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.35),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  station.formattedPrice,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
