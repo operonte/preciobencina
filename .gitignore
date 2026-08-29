@@ -55,3 +55,8 @@ functions/.runtimeconfig.json
 /android/key.properties
 /android/app/*.jks
 /android/app/*.keystore
+
+# Respaldo local del keystore de release y su contraseña (fuera de
+# android/ a propósito, para tenerlo a mano junto al proyecto). Nunca debe
+# subirse a git ni compartirse: contiene la contraseña en texto plano.
+/respaldo-firma/
