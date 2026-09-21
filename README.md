@@ -22,6 +22,15 @@ funciona "de fábrica" con datos reales, sin pasos adicionales.
 3. Llama a `https://api.cne.cl/api/v4/estaciones` con ese token y devuelve el
    resultado tal cual a la app.
 
+### Configuración de Firebase
+
+`lib/firebase_options.dart` y `android/app/google-services.json` **no se
+versionan**: llevan las claves del proyecto. En el repositorio quedan sus
+plantillas (`.example`). Para compilar, genera los tuyos:
+
+    dart pub global activate flutterfire_cli
+    flutterfire configure
+
 ### Desplegar tu propio backend (opcional)
 
 1. Crea un proyecto de Firebase en plan Blaze, con Firestore habilitado en
