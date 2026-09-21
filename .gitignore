@@ -60,3 +60,6 @@ functions/.runtimeconfig.json
 # android/ a propósito, para tenerlo a mano junto al proyecto). Nunca debe
 # subirse a git ni compartirse: contiene la contraseña en texto plano.
 /respaldo-firma/
+
+# editor
+.vscode/
